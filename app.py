@@ -24,16 +24,6 @@ from vaulttec.analytics import (
 )
 from vaulttec.analytics.signal_history import init_signal_history
 from vaulttec.automation import AutomationEngine
-from vaulttec.challenge import (
-    CHALLENGE_REQUIRED_TRADES,
-    CHALLENGE_STARTING_CAPITAL_LABEL,
-    CHALLENGE_SUBSCRIPTIONS,
-    NO_REASONS,
-    ChallengeTrial,
-    build_proposal,
-    explain_proposal_plain,
-)
-from vaulttec.coach import COACHING_CHECKLIST, Coach, walkthrough
 from vaulttec.config import RISK_PROFILES, get_settings
 from vaulttec.db import init_db
 from vaulttec.db.models import UserProfile
@@ -139,14 +129,10 @@ if "profile" not in st.session_state:
     st.session_state.profile = UserProfile()
 if "portfolio" not in st.session_state:
     st.session_state.portfolio = Portfolio(cash=settings.paper_starting_cash)
-if "coach" not in st.session_state:
-    st.session_state.coach = Coach()
 if "risk" not in st.session_state:
     st.session_state.risk = RiskEngine()
 if "engine" not in st.session_state:
     st.session_state.engine = PaperTradingEngine(st.session_state.portfolio, st.session_state.risk)
-if "challenge" not in st.session_state:
-    st.session_state.challenge = ChallengeTrial()
 if "assistant" not in st.session_state:
     st.session_state.assistant = Assistant()
 if "automation" not in st.session_state:
@@ -158,9 +144,7 @@ if "automation" not in st.session_state:
 profile: UserProfile = st.session_state.profile
 automation: AutomationEngine = st.session_state.automation
 portfolio: Portfolio = st.session_state.portfolio
-coach: Coach = st.session_state.coach
 engine: PaperTradingEngine = st.session_state.engine
-challenge: ChallengeTrial = st.session_state.challenge
 
 # --- Sidebar: profile settings --------------------------------------------
 st.sidebar.title("🏦 VAULTTEC")
@@ -189,7 +173,6 @@ profile.allowed_markets = st.sidebar.multiselect(
 )
 st.sidebar.markdown("---")
 st.sidebar.subheader("Automation")
-st.sidebar.write(f"Coaching stage: **{profile.coaching_stage}**")
 st.sidebar.write(f"Automation: **{'ON (paper only)' if automation.enabled else 'OFF'}**")
 if st.sidebar.button("🛑 EMERGENCY STOP — pause automation", use_container_width=True):
     automation.kill_switch()
@@ -198,7 +181,7 @@ if automation.paused:
     if st.sidebar.button("Resume automation (needs re-enable)", use_container_width=True):
         automation.resume()
         st.sidebar.info("Paused flag cleared. Enable automation again below to restart it.")
-st.sidebar.caption("Automation is paper-only, needs coaching graduation, and never bypasses risk limits.")
+st.sidebar.caption("Automation is paper-only and never bypasses risk limits.")
 st.sidebar.markdown("---")
 st.sidebar.info(DISCLOSURE)
 
@@ -211,7 +194,7 @@ st.warning(DISCLOSURE)
 # --- Tabs: one short scroll per section, not one long page -------------
 # Order matches the original layout, so every variable a later
 # section needs is still defined before it is used.
-tab_dashboard, tab_scanner, tab_trade, tab_challenge, tab_results, tab_live_paper, tab_private = st.tabs(["Dashboard", "Scanner", "Trade", "Challenge", "Results", "Live Paper", "Private"])
+tab_dashboard, tab_scanner, tab_results, tab_live_paper, tab_private = st.tabs(["Dashboard", "Scanner", "Results", "Live Paper", "Private"])
 
 with tab_dashboard:
     # --- Portfolio metrics -----------------------------------------------------
@@ -299,189 +282,6 @@ with tab_scanner:
     c4.metric("Best / worst day", f"{hist['best_day_pct']:+.1f}% / {hist['worst_day_pct']:+.1f}%")
 
 
-with tab_trade:
-    # --- Coaching --------------------------------------------------------------
-    st.header("🎓 Your Coach — learn first, automate later")
-    st.progress(coach.progress_pct / 100)
-    st.write(f"Coaching progress: {coach.progress_pct}% — next step: **{coach.next_step}**")
-    for item in COACHING_CHECKLIST:
-        done = item["id"] in coach.completed
-        if st.checkbox(item["label"], value=done, key=f"coach_{item['id']}"):
-            coach.complete(item["id"])
-    st.write(f"Coached paper trades done: {coach.coached_trades_done} / 5")
-    if coach.can_graduate() and not coach.graduated:
-        if st.button("Take the graduation review — I understand the risks"):
-            if coach.graduate(user_confirmed=True):
-                profile.coaching_stage = "graduated"
-                st.success("Graduated! You can now enable supervised automation (paper only).")
-    elif coach.graduated:
-        st.success("✅ Graduated from coaching. Supervised automation is available (paper only).")
-        if automation.enabled:
-            st.write("🤖 Supervised automation is **ON** — paper trades only, inside your profile limits.")
-        elif st.button("Enable supervised automation (paper only)"):
-            if automation.enable(graduated=True):
-                st.success("Automation enabled — paper only, risk-checked, kill-switch ready.")
-            else:
-                st.error("Automation could not be enabled.")
-
-    # --- Coached paper trade ---------------------------------------------------
-    st.header("📈 Place a coached paper trade")
-    symbol = st.selectbox("Symbol", settings.watchlist)
-    q = quotes[symbol]
-    history = provider.get_history(symbol)
-    sig = generate_signal(symbol, history)
-    check = st.session_state.risk.check_order(
-        symbol=symbol, price=q.price, quantity=1, stop_loss=q.price * 0.97,
-        take_profit=q.price * 1.045, portfolio_value=value,
-        current_exposure=portfolio.exposure(prices),
-    )
-    qty = st.number_input("Quantity (shares)", min_value=1, max_value=max(1, int(check.max_quantity)),
-                          value=1, step=1)
-    sl = st.number_input("Stop-loss ($)", value=check.suggested_stop_loss, step=0.5)
-    tp = st.number_input("Take-profit ($)", value=check.suggested_take_profit, step=0.5)
-    if st.button("Show me the walkthrough"):
-        st.info(walkthrough(symbol, sig.direction, q.price, sl, tp, qty, sig.evidence))
-    if st.button("Approve & place this paper trade"):
-        trade = engine.place_order(symbol, "buy", qty, q.price, sl, tp,
-                                   reason=sig.evidence, source="coached")
-        if trade:
-            coach.record_coached_trade()
-            st.success(f"Paper trade placed: {qty} × {symbol} @ ${q.price:,.2f} (virtual money).")
-        else:
-            st.error("Trade BLOCKED by the Risk Engine:")
-            for r in engine.blocked[-1]["reasons"]:
-                st.write(f"- {r}")
-
-
-with tab_challenge:
-    # --- Challenge Trial -------------------------------------------------------
-    # Paper only. Trading platform, not a school — no Academy, no course.
-    # $20 is the user's own starting capital — VaultTec takes nothing from
-    # it. Pass = 30 paper trades in 1 month (win or lose). AI proposes,
-    # the user decides YES or NO. Live trading is NOT built: it needs a
-    # compliance/legal check first, and no payment is taken.
-    st.header("🏆 Challenge Trial — $20 is yours, trade by deciding")
-    st.write(f"**{CHALLENGE_STARTING_CAPITAL_LABEL}**")
-    st.write(
-        "The Challenge replaces the free tier. You put in $20 — your starting "
-        "capital for live trading later. VaultTec takes nothing from it. "
-        "After the challenge you join the membership separately and pay for "
-        "it yourself — the subscription is NOT taken from your profits. "
-        "Whatever you earn is yours. Challenge trades below are PAPER trades "
-        "on the $10,000 virtual portfolio — the $20 is not spent here."
-    )
-    st.write(
-        "Pass the Challenge by finishing **30 paper trades in 1 month — win "
-        "or lose**. No course, no Academy — VaultTec is a trading platform, "
-        "not a school. Losing trades still count: finishing is the pass, not "
-        "being profitable. The AI proposes each trade and shows its evidence; "
-        "**you decide YES or NO**. The AI can't win every time — the better "
-        "you understand the data, the better your chances."
-    )
-    acc = challenge.yes_no_accuracy()
-    cc1, cc2, cc3 = st.columns(3)
-    cc1.metric("Challenge trades", f"{challenge.trades_done} / {CHALLENGE_REQUIRED_TRADES}")
-    cc2.metric("Your YES/NO accuracy",
-               f"{acc['accuracy_pct']:.1f}%" if acc["accuracy_pct"] is not None else "—")
-    cc3.metric("Your starting capital", "$20.00")
-    st.progress(challenge.progress_pct / 100)
-    st.write(f"Challenge progress: {challenge.progress_pct}% — " +
-             ("; ".join(challenge.whats_left) if challenge.whats_left else "nothing left — Challenge complete!"))
-
-    st.subheader("Today's proposal — your call: YES or NO?")
-    proposal = build_proposal(symbol, sig.direction, sig.confidence, sig.evidence, q.price, qty)
-    st.write(explain_proposal_plain(proposal))
-    if sig.direction != "long":
-        st.info(f"No long proposal for {symbol} right now — the signal is "
-                f"{sig.direction}. Try another symbol above, or come back "
-                f"when the checks agree on a long trade. Forcing a trade is "
-                f"worse than waiting.")
-    else:
-        check_ch = st.session_state.risk.check_order(
-            symbol=symbol, price=q.price, quantity=qty,
-            stop_loss=proposal["stop_loss"], take_profit=proposal["take_profit"],
-            portfolio_value=value, current_exposure=portfolio.exposure(prices),
-        )
-        if not check_ch.allowed:
-            st.error("This proposal is BLOCKED by the Risk Engine — it cannot be placed:")
-            for r in check_ch.reasons:
-                st.write(f"- {r}")
-        no_reason = st.selectbox("If you say NO, why? (logged in your journal)",
-                                 NO_REASONS, key="challenge_no_reason")
-        yes_col, no_col = st.columns(2)
-        if yes_col.button("✅ YES — place this paper trade", use_container_width=True):
-            decision_index = len(challenge.decisions)
-            challenge.record_decision(symbol, sig.direction, sig.confidence, sig.evidence,
-                                      q.price, proposal["stop_loss"], proposal["take_profit"],
-                                      qty, "yes", "Agreed with the AI's reasoning")
-            trade = engine.place_order(symbol, "buy", qty, q.price,
-                                       proposal["stop_loss"], proposal["take_profit"],
-                                       reason=sig.evidence, source="challenge")
-            if trade:
-                challenge.record_trade(symbol, outcome="open", price=q.price,
-                                       stop_loss=proposal["stop_loss"],
-                                       take_profit=proposal["take_profit"], quantity=qty,
-                                       decision_index=decision_index)
-                st.success(f"YES logged and paper trade placed: {qty} × {symbol} @ "
-                           f"${q.price:,.2f} (virtual money). That's "
-                           f"{challenge.trades_done} of {CHALLENGE_REQUIRED_TRADES} "
-                           f"Challenge trades.")
-            else:
-                st.error("Trade BLOCKED by the Risk Engine — your YES was logged, "
-                         "but no trade was placed:")
-                for r in engine.blocked[-1]["reasons"]:
-                    st.write(f"- {r}")
-        if no_col.button("❌ NO — skip this trade", use_container_width=True):
-            challenge.record_decision(symbol, sig.direction, sig.confidence, sig.evidence,
-                                      q.price, proposal["stop_loss"], proposal["take_profit"],
-                                      qty, "no", no_reason)
-            st.info("NO logged — no trade placed. A NO is a good decision too, "
-                    "and it is in your journal just like a YES.")
-
-    st.subheader("Your 30-trade checklist — losses count, finishing is the pass")
-    if challenge.trades:
-        st.table([{"#": i + 1, "Symbol": t.symbol, "Date": t.date,
-                   "Your call": t.decision.upper(), "Outcome": t.outcome,
-                   "P&L (paper)": f"${t.pnl:+,.2f}"}
-                  for i, t in enumerate(challenge.trades)])
-    else:
-        st.write("No Challenge trades yet. Your first YES starts the count — "
-                 "losses count too, so a losing trade still moves you forward.")
-
-    st.subheader("Your YES/NO journal — are your calls any good?")
-    if challenge.decisions:
-        st.table([{"Symbol": d.symbol, "Call": d.decision.upper(),
-                   "Confidence": f"{d.confidence:.0%}",
-                   "Reason": d.reason, "Outcome": d.outcome,
-                   "P&L (paper)": f"${d.pnl:+,.2f}"}
-                  for d in reversed(challenge.decisions[-10:])])
-        if acc["accuracy_pct"] is None:
-            st.write("No Challenge trade has resolved yet, so there is no "
-                     "accuracy number to show — it appears once a trade closes.")
-        else:
-            st.write(f"Your YES calls so far: **{acc['wins']} wins, {acc['losses']} losses "
-                     f"({acc['accuracy_pct']:.1f}% accuracy)** over {acc['resolved_trades']} "
-                     f"resolved trades. Your NOs: {acc['no_decisions']} skipped. "
-                     f"Compare your accuracy with the AI's signal accuracy below — "
-                     f"if your NOs were right, your judgement is adding something.")
-    else:
-        st.write("No decisions logged yet. Every YES and NO you make on a "
-                 "proposal is recorded here, with the outcome when the trade resolves.")
-
-    if challenge.is_complete:
-        st.success("🏆 " + challenge.graduation_message())
-        tier_text = ", ".join(
-            f"{v['label']} ${v['monthly_usd']}" for v in CHALLENGE_SUBSCRIPTIONS.values()
-        )
-        st.write("After the challenge, you join the membership separately and "
-                 f"pay for it yourself ({tier_text} a month) — it is NOT taken "
-                 "from your profits. The rest of the profits are yours. No "
-                 "payment has been taken yet, and none will be until live "
-                 "trading is available.")
-    else:
-        st.write("**Still to go:** " + "; ".join(challenge.whats_left) + ".")
-
-
 with tab_results:
     # --- Trading history -------------------------------------------------------
     st.header("📓 Trading history (paper)")
@@ -490,7 +290,7 @@ with tab_results:
                    "Stop": t.stop_loss, "Target": t.take_profit, "Source": t.source}
                   for t in engine.trades])
     else:
-        st.write("No paper trades yet. Your first coached trade starts the journal — "
+        st.write("No paper trades yet. Your first paper trade starts the journal — "
                  "aim for 30–50 paper trades before any live trading is even considered.")
 
     # --- AI Assistant (Phase 2) ------------------------------------------------
@@ -699,6 +499,54 @@ with tab_results:
     else:
         st.write("Fresh-window test has not been run yet. Run it with: "
                  "`python -m vaulttec.analytics.fresh_window`")
+
+
+    # --- Phase 6: win-rate test -------------------------------------------------
+    st.header("📊 Phase 6 — Win-rate test (pickier entries + combined portfolio)")
+    phase6_path = Path(__file__).resolve().parent / "validation" / "phase6-win-rate-report.json"
+    if phase6_path.exists():
+        phase6 = json.loads(phase6_path.read_text())
+        st.write("Three new wide-6 variants on OOS-1/2/3 + FRESH-1/2/3/4, from the "
+                 "disk cache — no Yahoo re-fetch. Verdict rule, fixed before the run: "
+                 "worth keeping when pooled fresh P&L is > $0 AND pooled fresh win rate "
+                 "is > 40% AND positive in at least 2 fresh windows AND pooled OOS P&L "
+                 "is also > $0. Every variant keeps a stop-loss.")
+        for key, label in (("rsi_highconf", "RSI, confidence ≥ 0.70 only"),
+                           ("bollinger_highconf", "Bollinger, confidence ≥ 0.70 only"),
+                           ("rsi_volume", "RSI, volume > 20-day average only"),
+                           ("bollinger_volume", "Bollinger, volume > 20-day average only"),
+                           ("combined", "Combined — MR wide-6 + MACD trend, one portfolio")):
+            fresh = phase6["pooled_fresh"][key]
+            oos = phase6["pooled_oos"][key]
+            verdict = phase6["verdict"][key]
+            small = " ⚠️ SMALL SAMPLE — too few trades to adopt." if verdict.get("small_sample_fresh") else ""
+            st.write(f"**{label}** — fresh: {fresh['trades']} trades, {fresh['win_rate_pct']}% win, "
+                     f"paper P&L ${fresh['total_pnl_usd']:,.2f} (expectancy ${fresh['expectancy_usd']:,.2f}/trade), "
+                     f"positive in {fresh['positive_windows']}/{fresh['windows_total']} windows; "
+                     f"OOS: ${oos['total_pnl_usd']:,.2f} — "
+                     f"{'worth keeping' if verdict['worth_keeping'] else 'NOT worth keeping'}.{small}")
+        combined = phase6["combined_vs_legs"]
+        st.write(f"Combined beats both mean-reversion legs on P&L — fresh "
+                 f"${combined['fresh']['combined_pnl_usd']:,.2f} vs RSI "
+                 f"${combined['fresh']['rsi_wide6_pnl_usd']:,.2f} / Bollinger "
+                 f"${combined['fresh']['bollinger_wide6_pnl_usd']:,.2f}, and OOS "
+                 f"${combined['oos']['combined_pnl_usd']:,.2f} vs RSI "
+                 f"${combined['oos']['rsi_wide6_pnl_usd']:,.2f} / Bollinger "
+                 f"${combined['oos']['bollinger_wide6_pnl_usd']:,.2f} — but its expectancy "
+                 f"per trade is lower than either leg alone, so it wins by trading more, "
+                 f"not by trading better. The high-confidence gate almost never fires at "
+                 f"a mean-reversion entry (RSI: 1 fresh trade of 105 signals) — it is a "
+                 f"'don't trade' filter, not a pickier entry. Volume confirmation does not "
+                 f"raise the win rate; it just trades less for about the same expectancy.")
+        st.caption("Recommendation: keep wide-6 as the lead, test the combined portfolio "
+                   "in live paper before adopting it, do NOT adopt the high-confidence gate. "
+                   "Live paper evidence is still Day 1 only. Past performance does not "
+                   "guarantee future results.")
+        st.caption(phase6["note"])
+        st.caption("Full report: validation/phase6-win-rate-report.md")
+    else:
+        st.write("Win-rate test has not been run yet. Run it with: "
+                 "`python -m vaulttec.analytics.win_rate`")
 
 
 with tab_live_paper:
