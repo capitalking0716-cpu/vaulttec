@@ -1,7 +1,8 @@
 """VaultTec — Streamlit dashboard (Phase 1, paper trading only).
 
 Run:  streamlit run app.py
-Design: obsidian black / charcoal / metallic gold / vault amber.
+Design: obsidian black / deep violet purple / metallic gold — matched to the
+official VaultTec logo (gold V, purple T, crown, black/purple/gold).
 Underground financial intelligence bunker — clean, no cheesy hacker neon.
 
 Only this file imports Streamlit. All logic lives in the vaulttec package.
@@ -52,20 +53,28 @@ DISCLOSURE = (
 
 st.set_page_config(page_title="VaultTec — Financial Intelligence", page_icon="🏦", layout="wide")
 
-# --- Vault styling: obsidian / charcoal / gold / amber -------------------
+LOGO_PATH = Path(__file__).parent / "assets" / "vaulttec-logo.png"
+
+# --- Vault styling: obsidian black / deep violet / metallic gold ----------
+# Colours sampled from the official logo: gold #d4af37, violet #8b2ff7,
+# deep purple #5b21b6, obsidian #0b0b0d, charcoal #121214.
 st.markdown(
     """
     <style>
     .stApp { background-color: #0b0b0d; color: #e8e4d8; }
     h1, h2, h3 { color: #d4af37 !important; font-family: Georgia, serif; letter-spacing: 0.04em; }
-    .stMetric { background: #17171b; border: 1px solid #3a3222; border-radius: 8px; padding: 12px; }
+    h2 { border-bottom: 2px solid #5b21b6; padding-bottom: 6px; }
+    .stMetric { background: #17171b; border: 1px solid #5b21b6; border-radius: 8px; padding: 12px; }
     .stMetric label, .stMetric div { color: #e8e4d8 !important; }
-    .stButton>button { background: #d4af37; color: #0b0b0d; font-weight: bold; border: none; min-height: 48px; font-size: 16px; }
+    .stButton>button { background: linear-gradient(90deg, #d4af37, #b8860b); color: #0b0b0d; font-weight: bold; border: none; min-height: 48px; font-size: 16px; }
     .stButton>button:hover { background: #e8c766; color: #0b0b0d; }
+    .stButton>button[kind="secondary"] { background: #5b21b6; color: #ffffff; }
     @media (max-width: 600px) { .stMetric { padding: 8px; } .stMetric label { font-size: 13px; } }
     /* Tabs: short labels, scrollable on a phone so no section is a long scroll. */
     [data-testid="stTabs"] button { font-size: 14px; padding: 8px 10px; white-space: nowrap; }
-    section[data-testid="stSidebar"] { background-color: #121214; }
+    [data-testid="stTabs"] button[aria-selected="true"] { color: #d4af37 !important; border-bottom: 2px solid #8b2ff7 !important; }
+    section[data-testid="stSidebar"] { background-color: #121214; border-right: 2px solid #5b21b6; }
+    div[data-testid="stAlert"] { border: 1px solid #5b21b6; }
     </style>
     """,
     unsafe_allow_html=True,
@@ -147,7 +156,9 @@ portfolio: Portfolio = st.session_state.portfolio
 engine: PaperTradingEngine = st.session_state.engine
 
 # --- Sidebar: profile settings --------------------------------------------
-st.sidebar.title("🏦 VAULTTEC")
+if LOGO_PATH.exists():
+    st.sidebar.image(str(LOGO_PATH), use_container_width=True)
+st.sidebar.title("VAULTTEC")
 st.sidebar.caption("Financial Intelligence Bunker")
 st.sidebar.markdown("---")
 st.sidebar.subheader("Your Profile")
@@ -186,7 +197,8 @@ st.sidebar.markdown("---")
 st.sidebar.info(DISCLOSURE)
 
 # --- Header ----------------------------------------------------------------
-st.title("🏦 VAULTTEC")
+if LOGO_PATH.exists():
+    st.image(str(LOGO_PATH), use_container_width=True)
 st.caption("AI Trading & Investment Intelligence — paper trading only. The heart of the family trust.")
 st.warning(DISCLOSURE)
 
