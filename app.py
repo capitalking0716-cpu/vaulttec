@@ -219,7 +219,7 @@ st.warning(DISCLOSURE)
 # --- Tabs: one short scroll per section, not one long page -------------
 # Order matches the original layout, so every variable a later
 # section needs is still defined before it is used.
-tab_dashboard, tab_scanner, tab_results, tab_live_paper, tab_private = st.tabs(["Dashboard", "Scanner", "Results", "Live Paper", "Private"])
+tab_dashboard, tab_scanner, tab_trade, tab_results, tab_live_paper, tab_private = st.tabs(["Dashboard", "Scanner", "Trade", "Results", "Live Paper", "Private"])
 
 with tab_dashboard:
     # --- Portfolio metrics -----------------------------------------------------
@@ -305,6 +305,77 @@ with tab_scanner:
     c2.metric("Daily volatility", f"{hist['volatility_pct']:.1f}%")
     c3.metric("Worst drawdown", f"{hist['max_drawdown_pct']:.1f}%")
     c4.metric("Best / worst day", f"{hist['best_day_pct']:+.1f}% / {hist['worst_day_pct']:+.1f}%")
+
+
+with tab_trade:
+    # --- Trade desk: place paper trades. No coaching, no Challenge,
+    # no course — just trading, with the Risk Engine checking every order.
+    st.header("📈 Trade — place a paper trade")
+    st.caption("Paper trading only — virtual money. Every order goes through "
+               "the Risk Engine first: stop-loss required, position sized to "
+               "your limits. You decide every trade — nothing auto-buys.")
+    trade_symbol = st.selectbox("Symbol", settings.watchlist, key="trade_symbol")
+    trade_q = quotes[trade_symbol]
+    trade_history = provider.get_history(trade_symbol)
+    trade_sig = generate_signal(trade_symbol, trade_history)
+    st.write(f"**{trade_symbol}** — ${trade_q.price:,.2f} — signal: "
+             f"**{trade_sig.direction}** ({trade_sig.confidence:.0%})")
+    st.write(trade_sig.evidence)
+    trade_check = st.session_state.risk.check_order(
+        symbol=trade_symbol, price=trade_q.price, quantity=1,
+        stop_loss=trade_q.price * 0.94, take_profit=trade_q.price * 1.09,
+        portfolio_value=value,
+        current_exposure=portfolio.exposure(prices),
+    )
+    trade_qty = st.number_input(
+        "Quantity (shares)", min_value=1,
+        max_value=max(1, int(trade_check.max_quantity)),
+        value=1, step=1, key="trade_qty")
+    trade_sl = st.number_input(
+        "Stop-loss ($)", value=trade_check.suggested_stop_loss,
+        step=0.5, key="trade_sl")
+    trade_tp = st.number_input(
+        "Take-profit ($)", value=trade_check.suggested_take_profit,
+        step=0.5, key="trade_tp")
+    st.write(f"Risk on this trade: about "
+             f"${abs(trade_q.price - trade_sl) * trade_qty:,.2f} if the stop hits, "
+             f"about ${abs(trade_tp - trade_q.price) * trade_qty:,.2f} if the target hits.")
+    if st.button("✅ Place this paper trade", use_container_width=True):
+        trade = engine.place_order(
+            trade_symbol, "buy", trade_qty, trade_q.price, trade_sl, trade_tp,
+            reason=trade_sig.evidence, source="manual")
+        if trade:
+            st.success(f"Paper trade placed: {trade_qty} × {trade_symbol} @ "
+                       f"${trade_q.price:,.2f} (virtual money).")
+        else:
+            st.error("Trade BLOCKED by the Risk Engine:")
+            for r in engine.blocked[-1]["reasons"]:
+                st.write(f"- {r}")
+    # --- Open positions: close one by hand ----------------------------------
+    st.subheader("Open positions")
+    open_trades = [t for t in engine.trades if t.status == "open"]
+    if not open_trades:
+        st.write("No open paper positions right now.")
+    for t in open_trades:
+        col1, col2 = st.columns([3, 1])
+        col1.write(f"**{t.symbol}** — {t.quantity} × @ ${t.price:,.2f} — "
+                   f"stop ${t.stop_loss:,.2f}, target ${t.take_profit:,.2f}")
+        if col2.button("Close", key=f"close_{t.symbol}_{t.created_at}"):
+            pnl = engine.close_position(t.symbol, prices.get(t.symbol, t.price),
+                                        exit_reason="manual close")
+            if pnl is not None:
+                st.success(f"Closed {t.symbol} — P&L ${pnl:,.2f} (paper).")
+            else:
+                st.error(f"Could not close {t.symbol}.")
+    # --- Supervised automation (paper only, your choice) ---------------------
+    st.subheader("Supervised automation (paper only)")
+    if automation.enabled:
+        st.write("🤖 Supervised automation is **ON** — paper trades only, inside your profile limits.")
+    elif st.button("Enable supervised automation (paper only)", use_container_width=True):
+        if automation.enable():
+            st.success("Automation enabled — paper only, risk-checked, kill-switch ready.")
+        else:
+            st.error("Automation could not be enabled.")
 
 
 with tab_results:
