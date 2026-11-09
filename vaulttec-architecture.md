@@ -798,6 +798,58 @@ the shared Risk Engine and the mean-reversion trigger.
   — 3 trades open (GOOGL, META, ETH-USD), 0 closed, $0.00
   realised. Do not scale up on backtests alone.
 
+## 25. Phase 6 — Win-rate tests (done 2026-11-09)
+
+Three new wide-6 variants on OOS-1/2/3 + FRESH-1/2/3/4, from the
+disk cache (no Yahoo re-fetch), all through the real
+PaperTradingEngine + Risk Engine, $10,000, long-only. Verdict rule,
+fixed before the run: worth keeping when pooled fresh P&L > $0 AND
+pooled fresh win rate > 40% AND positive in at least 2 fresh windows
+AND pooled OOS P&L > $0. A small-sample flag (< 20 trades in a pool)
+annotates any variant that passes the rule on too few trades to adopt.
+
+- **(1) High-confidence-only (confidence >= 0.70) — fails in practice.**
+  RSI: 1 fresh trade (of 105 signals), 100% win, +$27.97; 1 OOS trade,
+  +$47.81. Bollinger: 5 fresh trades, 80% win, +$244.01; 1 OOS trade,
+  +$29.33. At a mean-reversion entry the trend/EMA/MACD checks are
+  usually bearish, so four bullish checks almost never agree — the
+  gate is effectively a "don't trade" filter, not a pickier entry.
+  Do NOT adopt it on 2 / 6 trades.
+- **(2) Volume confirmation (entry volume > 20-day average) — no win-rate gain.**
+  RSI volume: fresh 49 trades, 55.1% win, +$877.43, expectancy +$17.91
+  (baseline: 105 trades, 58.1%, +$1,878.13, +$17.89). Bollinger volume:
+  fresh 46 trades, 54.3% win, +$883.47, +$19.21 (baseline: 50 trades,
+  56.0%, +$1,046.71, +$20.93). It trades less for about the same
+  expectancy — it does not raise the win rate.
+- **(3) Combined — MR wide-6 + MACD trend, one shared $10,000 portfolio —
+  beats either leg alone on P&L, but by trading more, not better.**
+  Fresh: 354 trades, 57.9% win, **+$5,575.29**, expectancy +$15.75,
+  positive 4/4 windows. OOS: 280 trades, 54.6% win, **+$3,190.39**,
+  +$11.39/trade, positive 3/3. It beats RSI wide-6 (fresh +$1,878.13,
+  OOS +$1,441.19) and Bollinger wide-6 (fresh +$1,046.71, OOS +$880.48)
+  and MACD alone (Phase 5: fresh +$2,899.45, OOS +$1,432.96) on P&L in
+  both pools. But its expectancy is lower than any leg alone, and it
+  is less than the sum of the legs on separate $10,000 pots (one shared
+  pot, same-day skips, shared cash). Most combined trades are MACD
+  (224 of 354 fresh, 191 of 280 OOS). At most one trade per symbol per
+  day; mean-reversion on a 5-day grid, MACD every bar.
+- **Baselines re-run and reproduced exactly:** RSI wide-6 OOS +$1,441.19,
+  fresh (4 windows) +$1,878.13; Bollinger wide-6 OOS +$880.48, fresh
+  +$1,046.71 — the same figures as Phases 4c/4d/5, so the comparison is
+  like-for-like.
+- **Quirk documented in tests:** on a perfectly flat history the
+  Bollinger Bands collapse to zero width, so close == lower band and
+  the Bollinger trigger fires. Real prices are never exactly flat; the
+  live-paper runner already guards against zero-width bands.
+- **Recommendation: keep wide-6 as the lead; test the combined portfolio
+  in live paper before adopting it; do NOT adopt the high-confidence
+  gate; do NOT adopt volume confirmation as a win-rate fix.**
+  Code: `vaulttec/analytics/win_rate.py`; report:
+  `validation/phase6-win-rate-report.md` (+ JSON); app.py Phase 6 panel
+  in the Results tab. Tests: 12 new in `tests/test_phase6_win_rate.py`
+  (stubs only — no test touches the network). Re-run:
+  `python -m vaulttec.analytics.win_rate`.
+
 ## 15. How to run (Phase 1)
 
 ```bash

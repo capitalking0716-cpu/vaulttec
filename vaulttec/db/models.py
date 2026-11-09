@@ -10,15 +10,13 @@ class UserProfile:
     """The user's trading profile. Automation may never exceed these limits."""
 
     name: str = "Trader"
-    goal: str = "Grow steadily, learn first"
+    goal: str = "Grow steadily"
     risk_tolerance: str = "balanced"  # conservative | balanced | growth
     virtual_capital: float = 10_000.00
     max_position_pct: float = 0.10
     daily_loss_limit_pct: float = 0.02
     allowed_markets: list = field(default_factory=lambda: ["stocks"])
-    automation_enabled: bool = False  # OFF by default; user opts in after graduation
-    coaching_stage: str = "learn"  # learn | coached | graduated | automated
-    coached_trades_done: int = 0
+    automation_enabled: bool = False  # OFF by default; user opts in
 
 
 @dataclass
@@ -30,7 +28,7 @@ class PaperTrade:
     stop_loss: float
     take_profit: float
     reason: str
-    source: str = "manual"  # manual | coached | automated
+    source: str = "manual"  # manual | automated
     status: str = "open"  # open | closed | blocked
     pnl: float = 0.0
     created_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())

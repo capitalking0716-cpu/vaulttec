@@ -175,7 +175,7 @@ class Assistant:
             for h in holdings:
                 lines.append(f"  - {h.get('symbol')}: {h.get('quantity')} shares.")
         else:
-            lines.append("You hold nothing yet — your first coached paper trade will start the journal.")
+            lines.append("You hold nothing yet — your first paper trade will start the journal.")
         lines.append("If one holding is much bigger than the others, that is concentration "
                      "risk: one bad day in that stock hurts the whole portfolio.")
         return " ".join(lines)
@@ -194,9 +194,9 @@ class Assistant:
                     "evidence, the risk, and the plan, and track whether the "
                     "approach works over 30–50 paper trades.")
         if "automat" in q:
-            return ("Automation starts only after you graduate from coaching, "
-                    "only inside your profile settings, and only on paper in "
-                    "Phase 1. You can stop it instantly with the kill-switch.")
+            return ("Automation runs only inside your profile settings, "
+                    "and only on paper in Phase 1. You can stop it instantly "
+                    "with the kill-switch.")
         if "portfolio" in q or "holding" in q or "how much" in q:
             if "portfolio_value" in context:
                 return self.explain_portfolio(
@@ -214,10 +214,10 @@ class Assistant:
             return ("Ask for a briefing after the scanner has run — I need the "
                     "watchlist results to brief you honestly.")
         if "coach" in q or "graduat" in q or "learn" in q:
-            return ("Coaching walks you through your first 5 paper trades, step by "
-                    "step, until you can explain the 'why' yourself. Graduation is "
-                    "your choice, never automatic — and only after graduation can "
-                    "supervised automation (paper only) be switched on.")
+            return ("VaultTec is a trading platform, not a school — there is no "
+                    "coaching or course here. Use the scanner and the risk tools, "
+                    "start with paper trades, and ask me about a symbol or a "
+                    "strategy if you want it explained.")
         if "signal" in q or "opportunit" in q:
             if "signals" in context and context["signals"]:
                 return "\n".join(self.explain_signal(s) for s in context["signals"])
@@ -228,7 +228,7 @@ class Assistant:
                 return self.llm.complete(question, context)
             except Exception as exc:  # never fail the whole app on an LLM error
                 return f"I could not get an answer from the language model ({exc}). Here is what I know for certain: " + DISCLOSURE_LINE
-        return ("I can help with your portfolio, signals, risk, strategies, and "
-                "coaching progress. Ask me about a symbol, your risk limits, a "
+        return ("I can help with your portfolio, signals, risk, and strategies. "
+                "Ask me about a symbol, your risk limits, a "
                 "strategy like 'SMA crossover', or say 'daily briefing' for the "
                 "morning summary.")

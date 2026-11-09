@@ -5,7 +5,7 @@ Phase 2: EMA, MACD, Bollinger Bands, volume analysis, ATR, and a
 plain-language explainer for every indicator. An indicator is an
 observation about past prices — never a prediction or a guarantee.
 Each indicator function returns raw numbers; the ``explain_*`` helpers
-turn those numbers into plain language for the dashboard and the Coach.
+turn those numbers into plain language for the dashboard.
 """
 from __future__ import annotations
 

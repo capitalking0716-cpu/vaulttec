@@ -4,7 +4,7 @@ A signal is an observation with evidence — never a guarantee.
 Confidence is a score from how many *independent* checks agree
 (trend, EMA, MACD, RSI, Bollinger, volume). Each check contributes
 evidence in plain language, and the signal carries the full list so
-the dashboard, the Coach, and the AI assistant can all explain the
+the dashboard and the AI assistant can explain the
 same trade the same way. No signal is ever presented as a promise,
 and confidence is capped at 0.85 — no signal is ever "certain".
 
@@ -112,7 +112,7 @@ def generate_signal(symbol: str, history: pd.DataFrame) -> Signal:
 
 
 def explain_signal_plain(signal: Signal, history: pd.DataFrame) -> str:
-    """Full plain-language explanation of a signal for the Coach and
+    """Full plain-language explanation of a signal for the dashboard and
     the assistant: what it says, why, what could go wrong, and what
     to check before any trade."""
     ind = analyse_indicators(history)

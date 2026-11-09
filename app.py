@@ -31,6 +31,7 @@ from vaulttec.db.models import UserProfile
 from vaulttec.market import analyse_indicators, fetch_history, get_provider
 from vaulttec.paper_trading import PaperTradingEngine
 from vaulttec.portfolio import Portfolio
+from vaulttec.profile_store import load_profile, profile_snapshot, save_profile
 from vaulttec.private_live.panel import (
     activate_kill_switch,
     approve_proposal,
@@ -134,8 +135,14 @@ init_signal_history(settings.db_path)
 provider = get_provider(settings.data_provider)
 
 # --- Session state ---------------------------------------------------------
+# Profile memory: load the saved profile from data/profile.json (local
+# only, never pushed to GitHub) so the app remembers who the user is
+# and what risk limits they set, every time it opens. Without this the
+# profile reset to defaults on every reopen — dangerous for a trading
+# app, because the risk limits would silently reset too.
 if "profile" not in st.session_state:
-    st.session_state.profile = UserProfile()
+    st.session_state.profile = load_profile()
+    st.session_state._saved_profile = profile_snapshot(st.session_state.profile)
 if "portfolio" not in st.session_state:
     st.session_state.portfolio = Portfolio(cash=settings.paper_starting_cash)
 if "risk" not in st.session_state:
@@ -182,6 +189,12 @@ engine.risk = st.session_state.risk
 profile.allowed_markets = st.sidebar.multiselect(
     "Allowed markets", ["stocks", "crypto"], default=profile.allowed_markets
 )
+# Save the profile whenever anything in it changed, so the next open
+# remembers this user and these risk limits.
+if profile_snapshot(profile) != st.session_state.get("_saved_profile"):
+    save_profile(profile)
+    st.session_state._saved_profile = profile_snapshot(profile)
+    st.sidebar.caption(f"Saved — welcome back, {profile.name}.")
 st.sidebar.markdown("---")
 st.sidebar.subheader("Automation")
 st.sidebar.write(f"Automation: **{'ON (paper only)' if automation.enabled else 'OFF'}**")

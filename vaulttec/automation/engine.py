@@ -33,13 +33,12 @@ class AutomationEngine:
         """Automation runs only if the user enabled it AND it is not paused."""
         return self.profile.automation_enabled and not self.paused
 
-    def enable(self, graduated: bool) -> bool:
-        """Enable only after coaching graduation, by explicit user choice."""
-        if not graduated:
-            self._record("enable_blocked", "Automation needs coaching graduation first.")
-            return False
+    def enable(self) -> bool:
+        """Enable by the user's explicit choice. No coaching stage,
+        no graduation gate — VaultTec is a trading platform, not a school.
+        Paper only, and the Risk Engine still approves every trade."""
         self.profile.automation_enabled = True
-        self._record("enabled", "Automation enabled by user after graduation.")
+        self._record("enabled", "Automation enabled by user choice.")
         return True
 
     def kill_switch(self) -> None:
@@ -56,8 +55,6 @@ class AutomationEngine:
         """Decide whether an automated paper trade may be proposed for a signal."""
         if not self.enabled:
             return False, "Automation is off or paused."
-        if self.profile.coaching_stage not in ("graduated", "automated"):
-            return False, "User has not graduated from coaching yet."
         if signal.direction == "neutral":
             return False, f"No clear direction for {signal.symbol} — skipping."
         if signal.confidence < 0.50:

@@ -9,8 +9,7 @@ CREATE TABLE IF NOT EXISTS user_profile (
     id INTEGER PRIMARY KEY CHECK (id = 1),
     name TEXT, goal TEXT, risk_tolerance TEXT,
     virtual_capital REAL, max_position_pct REAL, daily_loss_limit_pct REAL,
-    allowed_markets TEXT, automation_enabled INTEGER DEFAULT 0,
-    coaching_stage TEXT DEFAULT 'learn', coached_trades_done INTEGER DEFAULT 0
+    allowed_markets TEXT, automation_enabled INTEGER DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS paper_trades (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -25,10 +24,6 @@ CREATE TABLE IF NOT EXISTS signals (
 CREATE TABLE IF NOT EXISTS automation_log (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     event TEXT, detail TEXT, created_at TEXT
-);
-CREATE TABLE IF NOT EXISTS coach_progress (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    item TEXT, done INTEGER DEFAULT 0
 );
 """
 
