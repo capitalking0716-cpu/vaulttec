@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+# Secrets — never commit
+.env
+*.pem
+*.key
+# Data — local only, contains paper-trading history
+data/*.db
+data/*.sqlite3
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+# Streamlit
+.streamlit/secrets.toml
+# Local runtime data — never commit
+data/
+live_paper/state.json
+live_paper/trades.jsonl
+live_paper/live-paper-report.md
+vaulttec/private_live/state.json
+vaulttec/private_live/proposals.json
+vaulttec/private_live/trades.jsonl
+vaulttec/private_live/report.md
+vaulttec/private_live/STOP
+vaulttec/private_live/automation-enabled.json
+vaulttec/private_live/LIVE_CONFIRMATION.txt
+.pytest_cache/
