@@ -1,0 +1,1162 @@
+{
+  "generated_at": "2026-11-09T05:03:07.692718",
+  "title": "VaultTec \u2014 Phase 4 Real-Market Validation Report",
+  "method": "Walk-forward over delayed real market history from yfinance (180 days requested per symbol, 5-day windows, 10-day exit horizon). Signals used history up to the trade day only \u2014 no look-ahead.",
+  "data_source": "yfinance (delayed real market data, free \u2014 Yahoo Finance)",
+  "provider": "yfinance",
+  "history_days_requested": 180,
+  "symbols_attempted": [
+    "AAPL",
+    "MSFT",
+    "NVDA",
+    "SPY",
+    "AMZN",
+    "GOOGL",
+    "META",
+    "TSLA",
+    "JPM",
+    "JNJ",
+    "BTC-USD",
+    "ETH-USD"
+  ],
+  "symbols_traded": [
+    "AAPL",
+    "MSFT",
+    "NVDA",
+    "SPY",
+    "AMZN",
+    "GOOGL",
+    "META",
+    "TSLA",
+    "JPM",
+    "JNJ",
+    "BTC-USD",
+    "ETH-USD"
+  ],
+  "failed_symbols": {},
+  "history": {
+    "AAPL": {
+      "rows": 180,
+      "first_date": "2026-02-23",
+      "last_date": "2026-11-06",
+      "last_close": 342.37
+    },
+    "MSFT": {
+      "rows": 180,
+      "first_date": "2026-02-23",
+      "last_date": "2026-11-06",
+      "last_close": 530.61
+    },
+    "NVDA": {
+      "rows": 180,
+      "first_date": "2026-02-23",
+      "last_date": "2026-11-06",
+      "last_close": 186.64
+    },
+    "SPY": {
+      "rows": 180,
+      "first_date": "2026-02-23",
+      "last_date": "2026-11-06",
+      "last_close": 735.29
+    },
+    "AMZN": {
+      "rows": 180,
+      "first_date": "2026-02-23",
+      "last_date": "2026-11-06",
+      "last_close": 259.3
+    },
+    "GOOGL": {
+      "rows": 180,
+      "first_date": "2026-02-23",
+      "last_date": "2026-11-06",
+      "last_close": 284.78
+    },
+    "META": {
+      "rows": 180,
+      "first_date": "2026-02-23",
+      "last_date": "2026-11-06",
+      "last_close": 610.15
+    },
+    "TSLA": {
+      "rows": 180,
+      "first_date": "2026-02-23",
+      "last_date": "2026-11-06",
+      "last_close": 358.22
+    },
+    "JPM": {
+      "rows": 180,
+      "first_date": "2026-02-23",
+      "last_date": "2026-11-06",
+      "last_close": 334.49
+    },
+    "JNJ": {
+      "rows": 180,
+      "first_date": "2026-02-23",
+      "last_date": "2026-11-06",
+      "last_close": 276.22
+    },
+    "BTC-USD": {
+      "rows": 179,
+      "first_date": "2026-05-14",
+      "last_date": "2026-11-09",
+      "last_close": 74550.74
+    },
+    "ETH-USD": {
+      "rows": 179,
+      "first_date": "2026-05-14",
+      "last_date": "2026-11-09",
+      "last_close": 2134.18
+    }
+  },
+  "risk_profile": "balanced",
+  "starting_cash_usd": 10000.0,
+  "target_trades": 40,
+  "trades_placed": 40,
+  "target_met": true,
+  "windows_checked": 81,
+  "skipped_neutral": 7,
+  "skipped_short": 34,
+  "skipped_already_in_position": 0,
+  "skipped_too_small": 0,
+  "blocked_by_risk": 0,
+  "blocked_reasons": {},
+  "wins": 16,
+  "losses": 24,
+  "win_rate_pct": 40.0,
+  "total_pnl_usd": -92.4,
+  "total_pnl_pct": -0.92,
+  "avg_win_usd": 37.5,
+  "avg_loss_usd": -28.85,
+  "exits": {
+    "take-profit": 12,
+    "stop-loss": 23,
+    "time exit (10 days)": 5
+  },
+  "per_symbol_trades": {
+    "AAPL": 4,
+    "NVDA": 3,
+    "SPY": 4,
+    "AMZN": 3,
+    "GOOGL": 3,
+    "TSLA": 3,
+    "BTC-USD": 5,
+    "ETH-USD": 5,
+    "JNJ": 4,
+    "MSFT": 2,
+    "JPM": 4
+  },
+  "trades": [
+    {
+      "symbol": "AAPL",
+      "entry": 298.7123718261719,
+      "exit": 312.16,
+      "quantity": 3.3477,
+      "stop_loss": 289.75,
+      "take_profit": 312.16,
+      "exit_reason": "take-profit",
+      "days_held": 5,
+      "pnl_usd": 45.02,
+      "pnl_pct": 4.5,
+      "confidence": 0.7
+    },
+    {
+      "symbol": "NVDA",
+      "entry": 220.1068878173828,
+      "exit": 213.5,
+      "quantity": 4.5637,
+      "stop_loss": 213.5,
+      "take_profit": 230.02,
+      "exit_reason": "stop-loss",
+      "days_held": 4,
+      "pnl_usd": -30.15,
+      "pnl_pct": -3.0,
+      "confidence": 0.7
+    },
+    {
+      "symbol": "SPY",
+      "entry": 730.03173828125,
+      "exit": 750.44,
+      "quantity": 1.3718,
+      "stop_loss": 708.13,
+      "take_profit": 762.89,
+      "exit_reason": "time exit (10 days)",
+      "days_held": 10,
+      "pnl_usd": 28.0,
+      "pnl_pct": 2.8,
+      "confidence": 0.65
+    },
+    {
+      "symbol": "AMZN",
+      "entry": 259.3399963378906,
+      "exit": 271.01,
+      "quantity": 3.8724,
+      "stop_loss": 251.56,
+      "take_profit": 271.01,
+      "exit_reason": "take-profit",
+      "days_held": 5,
+      "pnl_usd": 45.19,
+      "pnl_pct": 4.5,
+      "confidence": 0.65
+    },
+    {
+      "symbol": "GOOGL",
+      "entry": 387.1797180175781,
+      "exit": 375.56,
+      "quantity": 2.6055,
+      "stop_loss": 375.56,
+      "take_profit": 404.61,
+      "exit_reason": "stop-loss",
+      "days_held": 8,
+      "pnl_usd": -30.28,
+      "pnl_pct": -3.0,
+      "confidence": 0.65
+    },
+    {
+      "symbol": "TSLA",
+      "entry": 404.1099853515625,
+      "exit": 422.29,
+      "quantity": 2.4888,
+      "stop_loss": 391.99,
+      "take_profit": 422.29,
+      "exit_reason": "take-profit",
+      "days_held": 2,
+      "pnl_usd": 45.25,
+      "pnl_pct": 4.5,
+      "confidence": 0.7
+    },
+    {
+      "symbol": "BTC-USD",
+      "entry": 62239.12109375,
+      "exit": 65039.88,
+      "quantity": 0.0162,
+      "stop_loss": 60371.95,
+      "take_profit": 65039.88,
+      "exit_reason": "take-profit",
+      "days_held": 1,
+      "pnl_usd": 45.37,
+      "pnl_pct": 4.5,
+      "confidence": 0.65
+    },
+    {
+      "symbol": "ETH-USD",
+      "entry": 1773.500732421875,
+      "exit": 1853.31,
+      "quantity": 0.5722,
+      "stop_loss": 1720.3,
+      "take_profit": 1853.31,
+      "exit_reason": "take-profit",
+      "days_held": 1,
+      "pnl_usd": 45.67,
+      "pnl_pct": 4.5,
+      "confidence": 0.7
+    },
+    {
+      "symbol": "AAPL",
+      "entry": 310.5821533203125,
+      "exit": 301.26,
+      "quantity": 3.2822,
+      "stop_loss": 301.26,
+      "take_profit": 324.57,
+      "exit_reason": "stop-loss",
+      "days_held": 8,
+      "pnl_usd": -30.6,
+      "pnl_pct": -3.0,
+      "confidence": 0.7
+    },
+    {
+      "symbol": "NVDA",
+      "entry": 212.1151580810547,
+      "exit": 221.67,
+      "quantity": 4.7914,
+      "stop_loss": 205.75,
+      "take_profit": 221.67,
+      "exit_reason": "take-profit",
+      "days_held": 3,
+      "pnl_usd": 45.78,
+      "pnl_pct": 4.5,
+      "confidence": 0.65
+    },
+    {
+      "symbol": "SPY",
+      "entry": 746.6774291992188,
+      "exit": 724.28,
+      "quantity": 1.3672,
+      "stop_loss": 724.28,
+      "take_profit": 780.28,
+      "exit_reason": "stop-loss",
+      "days_held": 9,
+      "pnl_usd": -30.62,
+      "pnl_pct": -3.0,
+      "confidence": 0.65
+    },
+    {
+      "symbol": "AMZN",
+      "entry": 271.8500061035156,
+      "exit": 263.69,
+      "quantity": 3.7442,
+      "stop_loss": 263.69,
+      "take_profit": 284.1,
+      "exit_reason": "stop-loss",
+      "days_held": 3,
+      "pnl_usd": -30.55,
+      "pnl_pct": -3.0,
+      "confidence": 0.65
+    },
+    {
+      "symbol": "GOOGL",
+      "entry": 388.3482666015625,
+      "exit": 376.7,
+      "quantity": 2.6131,
+      "stop_loss": 376.7,
+      "take_profit": 405.83,
+      "exit_reason": "stop-loss",
+      "days_held": 3,
+      "pnl_usd": -30.44,
+      "pnl_pct": -3.0,
+      "confidence": 0.65
+    },
+    {
+      "symbol": "TSLA",
+      "entry": 440.3599853515625,
+      "exit": 427.15,
+      "quantity": 2.2975,
+      "stop_loss": 427.15,
+      "take_profit": 460.18,
+      "exit_reason": "stop-loss",
+      "days_held": 3,
+      "pnl_usd": -30.35,
+      "pnl_pct": -3.0,
+      "confidence": 0.7
+    },
+    {
+      "symbol": "JNJ",
+      "entry": 230.15489196777344,
+      "exit": 223.25,
+      "quantity": 4.3828,
+      "stop_loss": 223.25,
+      "take_profit": 240.52,
+      "exit_reason": "stop-loss",
+      "days_held": 3,
+      "pnl_usd": -30.26,
+      "pnl_pct": -3.0,
+      "confidence": 0.6
+    },
+    {
+      "symbol": "BTC-USD",
+      "entry": 64796.6015625,
+      "exit": 62852.7,
+      "quantity": 0.0155,
+      "stop_loss": 62852.7,
+      "take_profit": 67712.46,
+      "exit_reason": "stop-loss",
+      "days_held": 10,
+      "pnl_usd": -30.13,
+      "pnl_pct": -3.0,
+      "confidence": 0.7
+    },
+    {
+      "symbol": "ETH-USD",
+      "entry": 1861.39208984375,
+      "exit": 1945.16,
+      "quantity": 0.5386,
+      "stop_loss": 1805.55,
+      "take_profit": 1945.16,
+      "exit_reason": "take-profit",
+      "days_held": 3,
+      "pnl_usd": 45.12,
+      "pnl_pct": 4.5,
+      "confidence": 0.7
+    },
+    {
+      "symbol": "AAPL",
+      "entry": 309.9926452636719,
+      "exit": 300.69,
+      "quantity": 3.2491,
+      "stop_loss": 300.69,
+      "take_profit": 323.95,
+      "exit_reason": "stop-loss",
+      "days_held": 4,
+      "pnl_usd": -30.23,
+      "pnl_pct": -3.0,
+      "confidence": 0.65
+    },
+    {
+      "symbol": "MSFT",
+      "entry": 426.53704833984375,
+      "exit": 413.74,
+      "quantity": 2.3542,
+      "stop_loss": 413.74,
+      "take_profit": 445.74,
+      "exit_reason": "stop-loss",
+      "days_held": 2,
+      "pnl_usd": -30.13,
+      "pnl_pct": -3.0,
+      "confidence": 0.7
+    },
+    {
+      "symbol": "NVDA",
+      "entry": 214.26025390625,
+      "exit": 207.83,
+      "quantity": 4.6726,
+      "stop_loss": 207.83,
+      "take_profit": 223.91,
+      "exit_reason": "stop-loss",
+      "days_held": 2,
+      "pnl_usd": -30.05,
+      "pnl_pct": -3.0,
+      "confidence": 0.65
+    },
+    {
+      "symbol": "SPY",
+      "entry": 750.4384155273438,
+      "exit": 727.93,
+      "quantity": 1.3301,
+      "stop_loss": 727.93,
+      "take_profit": 784.21,
+      "exit_reason": "stop-loss",
+      "days_held": 4,
+      "pnl_usd": -29.94,
+      "pnl_pct": -3.0,
+      "confidence": 0.65
+    },
+    {
+      "symbol": "AMZN",
+      "entry": 250.02000427246094,
+      "exit": 242.52,
+      "quantity": 3.9803,
+      "stop_loss": 242.52,
+      "take_profit": 261.28,
+      "exit_reason": "stop-loss",
+      "days_held": 4,
+      "pnl_usd": -29.85,
+      "pnl_pct": -3.0,
+      "confidence": 0.6
+    },
+    {
+      "symbol": "GOOGL",
+      "entry": 358.54522705078125,
+      "exit": 347.79,
+      "quantity": 2.7672,
+      "stop_loss": 347.79,
+      "take_profit": 374.68,
+      "exit_reason": "stop-loss",
+      "days_held": 6,
+      "pnl_usd": -29.76,
+      "pnl_pct": -3.0,
+      "confidence": 0.65
+    },
+    {
+      "symbol": "TSLA",
+      "entry": 423.70001220703125,
+      "exit": 410.99,
+      "quantity": 2.3346,
+      "stop_loss": 410.99,
+      "take_profit": 442.77,
+      "exit_reason": "stop-loss",
+      "days_held": 2,
+      "pnl_usd": -29.67,
+      "pnl_pct": -3.0,
+      "confidence": 0.65
+    },
+    {
+      "symbol": "BTC-USD",
+      "entry": 65044.8125,
+      "exit": 63093.47,
+      "quantity": 0.0151,
+      "stop_loss": 63093.47,
+      "take_profit": 67971.83,
+      "exit_reason": "stop-loss",
+      "days_held": 5,
+      "pnl_usd": -29.47,
+      "pnl_pct": -3.0,
+      "confidence": 0.7
+    },
+    {
+      "symbol": "ETH-USD",
+      "entry": 1877.1002197265625,
+      "exit": 1961.57,
+      "quantity": 0.5238,
+      "stop_loss": 1820.79,
+      "take_profit": 1961.57,
+      "exit_reason": "take-profit",
+      "days_held": 3,
+      "pnl_usd": 44.25,
+      "pnl_pct": 4.5,
+      "confidence": 0.7
+    },
+    {
+      "symbol": "AAPL",
+      "entry": 291.3287353515625,
+      "exit": 282.59,
+      "quantity": 3.3903,
+      "stop_loss": 282.59,
+      "take_profit": 304.44,
+      "exit_reason": "stop-loss",
+      "days_held": 10,
+      "pnl_usd": -29.63,
+      "pnl_pct": -3.0,
+      "confidence": 0.7
+    },
+    {
+      "symbol": "MSFT",
+      "entry": 396.61334228515625,
+      "exit": 384.71,
+      "quantity": 2.4829,
+      "stop_loss": 384.71,
+      "take_profit": 414.47,
+      "exit_reason": "stop-loss",
+      "days_held": 1,
+      "pnl_usd": -29.55,
+      "pnl_pct": -3.0,
+      "confidence": 0.65
+    },
+    {
+      "symbol": "SPY",
+      "entry": 721.7736206054688,
+      "exit": 732.48,
+      "quantity": 1.3602,
+      "stop_loss": 700.12,
+      "take_profit": 754.26,
+      "exit_reason": "time exit (10 days)",
+      "days_held": 10,
+      "pnl_usd": 14.56,
+      "pnl_pct": 1.48,
+      "confidence": 0.7
+    },
+    {
+      "symbol": "JPM",
+      "entry": 306.2258605957031,
+      "exit": 320.01,
+      "quantity": 3.2108,
+      "stop_loss": 297.04,
+      "take_profit": 320.01,
+      "exit_reason": "take-profit",
+      "days_held": 3,
+      "pnl_usd": 44.26,
+      "pnl_pct": 4.5,
+      "confidence": 0.6
+    },
+    {
+      "symbol": "JNJ",
+      "entry": 237.31956481933594,
+      "exit": 230.2,
+      "quantity": 4.1618,
+      "stop_loss": 230.2,
+      "take_profit": 248.0,
+      "exit_reason": "stop-loss",
+      "days_held": 4,
+      "pnl_usd": -29.63,
+      "pnl_pct": -3.0,
+      "confidence": 0.6
+    },
+    {
+      "symbol": "BTC-USD",
+      "entry": 63871.36328125,
+      "exit": 64880.19,
+      "quantity": 0.0154,
+      "stop_loss": 61955.22,
+      "take_profit": 66745.58,
+      "exit_reason": "time exit (10 days)",
+      "days_held": 10,
+      "pnl_usd": 15.54,
+      "pnl_pct": 1.58,
+      "confidence": 0.65
+    },
+    {
+      "symbol": "ETH-USD",
+      "entry": 1919.948486328125,
+      "exit": 1862.35,
+      "quantity": 0.5136,
+      "stop_loss": 1862.35,
+      "take_profit": 2006.35,
+      "exit_reason": "stop-loss",
+      "days_held": 3,
+      "pnl_usd": -29.58,
+      "pnl_pct": -3.0,
+      "confidence": 0.7
+    },
+    {
+      "symbol": "JPM",
+      "entry": 330.31658935546875,
+      "exit": 331.32,
+      "quantity": 2.9768,
+      "stop_loss": 320.41,
+      "take_profit": 345.18,
+      "exit_reason": "time exit (10 days)",
+      "days_held": 10,
+      "pnl_usd": 2.99,
+      "pnl_pct": 0.3,
+      "confidence": 0.7
+    },
+    {
+      "symbol": "JNJ",
+      "entry": 233.0506134033203,
+      "exit": 243.54,
+      "quantity": 4.2205,
+      "stop_loss": 226.06,
+      "take_profit": 243.54,
+      "exit_reason": "take-profit",
+      "days_held": 5,
+      "pnl_usd": 44.27,
+      "pnl_pct": 4.5,
+      "confidence": 0.7
+    },
+    {
+      "symbol": "ETH-USD",
+      "entry": 1882.52197265625,
+      "exit": 1878.14,
+      "quantity": 0.5248,
+      "stop_loss": 1826.05,
+      "take_profit": 1967.23,
+      "exit_reason": "time exit (10 days)",
+      "days_held": 10,
+      "pnl_usd": -2.3,
+      "pnl_pct": -0.23,
+      "confidence": 0.65
+    },
+    {
+      "symbol": "JPM",
+      "entry": 331.9609375,
+      "exit": 322.0,
+      "quantity": 2.9756,
+      "stop_loss": 322.0,
+      "take_profit": 346.91,
+      "exit_reason": "stop-loss",
+      "days_held": 4,
+      "pnl_usd": -29.64,
+      "pnl_pct": -3.0,
+      "confidence": 0.7
+    },
+    {
+      "symbol": "JNJ",
+      "entry": 243.67820739746094,
+      "exit": 254.65,
+      "quantity": 4.0415,
+      "stop_loss": 236.37,
+      "take_profit": 254.65,
+      "exit_reason": "take-profit",
+      "days_held": 2,
+      "pnl_usd": 44.34,
+      "pnl_pct": 4.5,
+      "confidence": 0.7
+    },
+    {
+      "symbol": "BTC-USD",
+      "entry": 64880.19140625,
+      "exit": 62933.79,
+      "quantity": 0.0152,
+      "stop_loss": 62933.79,
+      "take_profit": 67799.8,
+      "exit_reason": "stop-loss",
+      "days_held": 6,
+      "pnl_usd": -29.59,
+      "pnl_pct": -3.0,
+      "confidence": 0.6
+    },
+    {
+      "symbol": "JPM",
+      "entry": 331.31707763671875,
+      "exit": 346.23,
+      "quantity": 2.9769,
+      "stop_loss": 321.38,
+      "take_profit": 346.23,
+      "exit_reason": "take-profit",
+      "days_held": 8,
+      "pnl_usd": 44.39,
+      "pnl_pct": 4.5,
+      "confidence": 0.7
+    }
+  ],
+  "note": "Validation on delayed real market history \u2014 a genuine out-of-sample test of the signal + risk machinery on prices that actually happened, not a random walk. It still does not prove future profits: one 180-day window, one signal method, long-only, and past performance does not guarantee future results. A real verdict also needs live paper trades over real days, and a compliance/legal review, before any real money is considered.",
+  "backtests": {
+    "per_symbol": {
+      "AAPL": {
+        "strategies": [
+          {
+            "strategy": "SMA crossover",
+            "total_return_pct": 12.34,
+            "trades": 2,
+            "win_rate_pct": 50.0,
+            "max_drawdown_pct": -3.22,
+            "note": "Historical only. Past performance does not guarantee future results."
+          },
+          {
+            "strategy": "MACD crossover",
+            "total_return_pct": 22.55,
+            "trades": 6,
+            "win_rate_pct": 50.0,
+            "max_drawdown_pct": -2.73,
+            "note": "Historical only. Past performance does not guarantee future results."
+          },
+          {
+            "strategy": "RSI mean-reversion",
+            "total_return_pct": 33.58,
+            "trades": 3,
+            "win_rate_pct": 100.0,
+            "max_drawdown_pct": 0.0,
+            "note": "Historical only. Past performance does not guarantee future results."
+          },
+          {
+            "strategy": "Bollinger mean-reversion",
+            "total_return_pct": 10.13,
+            "trades": 1,
+            "win_rate_pct": 100.0,
+            "max_drawdown_pct": 0.0,
+            "note": "Historical only. Past performance does not guarantee future results."
+          }
+        ],
+        "best_by_return": "RSI mean-reversion",
+        "note": "Historical only. Past performance does not guarantee future results. No strategy here is a recommendation to trade."
+      },
+      "MSFT": {
+        "strategies": [
+          {
+            "strategy": "SMA crossover",
+            "total_return_pct": -9.27,
+            "trades": 2,
+            "win_rate_pct": 0.0,
+            "max_drawdown_pct": -9.21,
+            "note": "Historical only. Past performance does not guarantee future results."
+          },
+          {
+            "strategy": "MACD crossover",
+            "total_return_pct": 32.48,
+            "trades": 5,
+            "win_rate_pct": 80.0,
+            "max_drawdown_pct": -7.46,
+            "note": "Historical only. Past performance does not guarantee future results."
+          },
+          {
+            "strategy": "RSI mean-reversion",
+            "total_return_pct": 13.09,
+            "trades": 2,
+            "win_rate_pct": 100.0,
+            "max_drawdown_pct": 0.0,
+            "note": "Historical only. Past performance does not guarantee future results."
+          },
+          {
+            "strategy": "Bollinger mean-reversion",
+            "total_return_pct": 17.29,
+            "trades": 2,
+            "win_rate_pct": 100.0,
+            "max_drawdown_pct": 0.0,
+            "note": "Historical only. Past performance does not guarantee future results."
+          }
+        ],
+        "best_by_return": "MACD crossover",
+        "note": "Historical only. Past performance does not guarantee future results. No strategy here is a recommendation to trade."
+      },
+      "NVDA": {
+        "strategies": [
+          {
+            "strategy": "SMA crossover",
+            "total_return_pct": 6.31,
+            "trades": 4,
+            "win_rate_pct": 50.0,
+            "max_drawdown_pct": -3.83,
+            "note": "Historical only. Past performance does not guarantee future results."
+          },
+          {
+            "strategy": "MACD crossover",
+            "total_return_pct": 1.91,
+            "trades": 7,
+            "win_rate_pct": 42.9,
+            "max_drawdown_pct": -7.71,
+            "note": "Historical only. Past performance does not guarantee future results."
+          },
+          {
+            "strategy": "RSI mean-reversion",
+            "total_return_pct": 18.97,
+            "trades": 1,
+            "win_rate_pct": 100.0,
+            "max_drawdown_pct": 0.0,
+            "note": "Historical only. Past performance does not guarantee future results."
+          },
+          {
+            "strategy": "Bollinger mean-reversion",
+            "total_return_pct": 26.77,
+            "trades": 2,
+            "win_rate_pct": 100.0,
+            "max_drawdown_pct": 0.0,
+            "note": "Historical only. Past performance does not guarantee future results."
+          }
+        ],
+        "best_by_return": "Bollinger mean-reversion",
+        "note": "Historical only. Past performance does not guarantee future results. No strategy here is a recommendation to trade."
+      },
+      "SPY": {
+        "strategies": [
+          {
+            "strategy": "SMA crossover",
+            "total_return_pct": 3.05,
+            "trades": 4,
+            "win_rate_pct": 25.0,
+            "max_drawdown_pct": -3.61,
+            "note": "Historical only. Past performance does not guarantee future results."
+          },
+          {
+            "strategy": "MACD crossover",
+            "total_return_pct": 10.77,
+            "trades": 6,
+            "win_rate_pct": 50.0,
+            "max_drawdown_pct": -1.82,
+            "note": "Historical only. Past performance does not guarantee future results."
+          },
+          {
+            "strategy": "RSI mean-reversion",
+            "total_return_pct": 5.28,
+            "trades": 1,
+            "win_rate_pct": 100.0,
+            "max_drawdown_pct": 0.0,
+            "note": "Historical only. Past performance does not guarantee future results."
+          },
+          {
+            "strategy": "Bollinger mean-reversion",
+            "total_return_pct": 13.68,
+            "trades": 2,
+            "win_rate_pct": 100.0,
+            "max_drawdown_pct": 0.0,
+            "note": "Historical only. Past performance does not guarantee future results."
+          }
+        ],
+        "best_by_return": "Bollinger mean-reversion",
+        "note": "Historical only. Past performance does not guarantee future results. No strategy here is a recommendation to trade."
+      },
+      "AMZN": {
+        "strategies": [
+          {
+            "strategy": "SMA crossover",
+            "total_return_pct": -17.65,
+            "trades": 4,
+            "win_rate_pct": 25.0,
+            "max_drawdown_pct": -22.69,
+            "note": "Historical only. Past performance does not guarantee future results."
+          },
+          {
+            "strategy": "MACD crossover",
+            "total_return_pct": 17.52,
+            "trades": 5,
+            "win_rate_pct": 20.0,
+            "max_drawdown_pct": -8.24,
+            "note": "Historical only. Past performance does not guarantee future results."
+          },
+          {
+            "strategy": "RSI mean-reversion",
+            "total_return_pct": 7.13,
+            "trades": 1,
+            "win_rate_pct": 100.0,
+            "max_drawdown_pct": 0.0,
+            "note": "Historical only. Past performance does not guarantee future results."
+          },
+          {
+            "strategy": "Bollinger mean-reversion",
+            "total_return_pct": 32.38,
+            "trades": 4,
+            "win_rate_pct": 75.0,
+            "max_drawdown_pct": -0.61,
+            "note": "Historical only. Past performance does not guarantee future results."
+          }
+        ],
+        "best_by_return": "Bollinger mean-reversion",
+        "note": "Historical only. Past performance does not guarantee future results. No strategy here is a recommendation to trade."
+      },
+      "GOOGL": {
+        "strategies": [
+          {
+            "strategy": "SMA crossover",
+            "total_return_pct": 2.49,
+            "trades": 4,
+            "win_rate_pct": 25.0,
+            "max_drawdown_pct": -12.84,
+            "note": "Historical only. Past performance does not guarantee future results."
+          },
+          {
+            "strategy": "MACD crossover",
+            "total_return_pct": 16.29,
+            "trades": 7,
+            "win_rate_pct": 14.3,
+            "max_drawdown_pct": -10.94,
+            "note": "Historical only. Past performance does not guarantee future results."
+          },
+          {
+            "strategy": "RSI mean-reversion",
+            "total_return_pct": 20.02,
+            "trades": 2,
+            "win_rate_pct": 50.0,
+            "max_drawdown_pct": -1.33,
+            "note": "Historical only. Past performance does not guarantee future results."
+          },
+          {
+            "strategy": "Bollinger mean-reversion",
+            "total_return_pct": 30.71,
+            "trades": 2,
+            "win_rate_pct": 50.0,
+            "max_drawdown_pct": -1.78,
+            "note": "Historical only. Past performance does not guarantee future results."
+          }
+        ],
+        "best_by_return": "Bollinger mean-reversion",
+        "note": "Historical only. Past performance does not guarantee future results. No strategy here is a recommendation to trade."
+      },
+      "META": {
+        "strategies": [
+          {
+            "strategy": "SMA crossover",
+            "total_return_pct": -22.35,
+            "trades": 3,
+            "win_rate_pct": 33.3,
+            "max_drawdown_pct": -25.82,
+            "note": "Historical only. Past performance does not guarantee future results."
+          },
+          {
+            "strategy": "MACD crossover",
+            "total_return_pct": 10.83,
+            "trades": 7,
+            "win_rate_pct": 14.3,
+            "max_drawdown_pct": -14.8,
+            "note": "Historical only. Past performance does not guarantee future results."
+          },
+          {
+            "strategy": "RSI mean-reversion",
+            "total_return_pct": 40.55,
+            "trades": 3,
+            "win_rate_pct": 100.0,
+            "max_drawdown_pct": 0.0,
+            "note": "Historical only. Past performance does not guarantee future results."
+          },
+          {
+            "strategy": "Bollinger mean-reversion",
+            "total_return_pct": 38.98,
+            "trades": 3,
+            "win_rate_pct": 100.0,
+            "max_drawdown_pct": 0.0,
+            "note": "Historical only. Past performance does not guarantee future results."
+          }
+        ],
+        "best_by_return": "RSI mean-reversion",
+        "note": "Historical only. Past performance does not guarantee future results. No strategy here is a recommendation to trade."
+      },
+      "TSLA": {
+        "strategies": [
+          {
+            "strategy": "SMA crossover",
+            "total_return_pct": -1.99,
+            "trades": 2,
+            "win_rate_pct": 50.0,
+            "max_drawdown_pct": -4.1,
+            "note": "Historical only. Past performance does not guarantee future results."
+          },
+          {
+            "strategy": "MACD crossover",
+            "total_return_pct": -21.94,
+            "trades": 9,
+            "win_rate_pct": 22.2,
+            "max_drawdown_pct": -22.86,
+            "note": "Historical only. Past performance does not guarantee future results."
+          },
+          {
+            "strategy": "RSI mean-reversion",
+            "total_return_pct": 7.06,
+            "trades": 1,
+            "win_rate_pct": 100.0,
+            "max_drawdown_pct": 0.0,
+            "note": "Historical only. Past performance does not guarantee future results."
+          },
+          {
+            "strategy": "Bollinger mean-reversion",
+            "total_return_pct": 9.22,
+            "trades": 2,
+            "win_rate_pct": 50.0,
+            "max_drawdown_pct": -7.2,
+            "note": "Historical only. Past performance does not guarantee future results."
+          }
+        ],
+        "best_by_return": "Bollinger mean-reversion",
+        "note": "Historical only. Past performance does not guarantee future results. No strategy here is a recommendation to trade."
+      },
+      "JPM": {
+        "strategies": [
+          {
+            "strategy": "SMA crossover",
+            "total_return_pct": 16.29,
+            "trades": 2,
+            "win_rate_pct": 100.0,
+            "max_drawdown_pct": 0.0,
+            "note": "Historical only. Past performance does not guarantee future results."
+          },
+          {
+            "strategy": "MACD crossover",
+            "total_return_pct": 5.63,
+            "trades": 8,
+            "win_rate_pct": 37.5,
+            "max_drawdown_pct": -6.07,
+            "note": "Historical only. Past performance does not guarantee future results."
+          },
+          {
+            "strategy": "RSI mean-reversion",
+            "total_return_pct": 7.9,
+            "trades": 1,
+            "win_rate_pct": 100.0,
+            "max_drawdown_pct": 0.0,
+            "note": "Historical only. Past performance does not guarantee future results."
+          },
+          {
+            "strategy": "Bollinger mean-reversion",
+            "total_return_pct": 4.47,
+            "trades": 2,
+            "win_rate_pct": 100.0,
+            "max_drawdown_pct": 0.0,
+            "note": "Historical only. Past performance does not guarantee future results."
+          }
+        ],
+        "best_by_return": "SMA crossover",
+        "note": "Historical only. Past performance does not guarantee future results. No strategy here is a recommendation to trade."
+      },
+      "JNJ": {
+        "strategies": [
+          {
+            "strategy": "SMA crossover",
+            "total_return_pct": 11.35,
+            "trades": 4,
+            "win_rate_pct": 50.0,
+            "max_drawdown_pct": -2.81,
+            "note": "Historical only. Past performance does not guarantee future results."
+          },
+          {
+            "strategy": "MACD crossover",
+            "total_return_pct": -10.37,
+            "trades": 9,
+            "win_rate_pct": 11.1,
+            "max_drawdown_pct": -10.22,
+            "note": "Historical only. Past performance does not guarantee future results."
+          },
+          {
+            "strategy": "RSI mean-reversion",
+            "total_return_pct": 7.69,
+            "trades": 2,
+            "win_rate_pct": 100.0,
+            "max_drawdown_pct": 0.0,
+            "note": "Historical only. Past performance does not guarantee future results."
+          },
+          {
+            "strategy": "Bollinger mean-reversion",
+            "total_return_pct": 7.98,
+            "trades": 2,
+            "win_rate_pct": 100.0,
+            "max_drawdown_pct": 0.0,
+            "note": "Historical only. Past performance does not guarantee future results."
+          }
+        ],
+        "best_by_return": "SMA crossover",
+        "note": "Historical only. Past performance does not guarantee future results. No strategy here is a recommendation to trade."
+      },
+      "BTC-USD": {
+        "strategies": [
+          {
+            "strategy": "SMA crossover",
+            "total_return_pct": -1.54,
+            "trades": 3,
+            "win_rate_pct": 33.3,
+            "max_drawdown_pct": -5.15,
+            "note": "Historical only. Past performance does not guarantee future results."
+          },
+          {
+            "strategy": "MACD crossover",
+            "total_return_pct": 8.04,
+            "trades": 7,
+            "win_rate_pct": 28.6,
+            "max_drawdown_pct": -10.02,
+            "note": "Historical only. Past performance does not guarantee future results."
+          },
+          {
+            "strategy": "RSI mean-reversion",
+            "total_return_pct": 1.12,
+            "trades": 2,
+            "win_rate_pct": 50.0,
+            "max_drawdown_pct": -11.67,
+            "note": "Historical only. Past performance does not guarantee future results."
+          },
+          {
+            "strategy": "Bollinger mean-reversion",
+            "total_return_pct": -0.3,
+            "trades": 1,
+            "win_rate_pct": 0.0,
+            "max_drawdown_pct": -0.3,
+            "note": "Historical only. Past performance does not guarantee future results."
+          }
+        ],
+        "best_by_return": "MACD crossover",
+        "note": "Historical only. Past performance does not guarantee future results. No strategy here is a recommendation to trade."
+      },
+      "ETH-USD": {
+        "strategies": [
+          {
+            "strategy": "SMA crossover",
+            "total_return_pct": 18.54,
+            "trades": 2,
+            "win_rate_pct": 100.0,
+            "max_drawdown_pct": 0.0,
+            "note": "Historical only. Past performance does not guarantee future results."
+          },
+          {
+            "strategy": "MACD crossover",
+            "total_return_pct": 6.88,
+            "trades": 5,
+            "win_rate_pct": 60.0,
+            "max_drawdown_pct": -11.89,
+            "note": "Historical only. Past performance does not guarantee future results."
+          },
+          {
+            "strategy": "RSI mean-reversion",
+            "total_return_pct": -13.1,
+            "trades": 1,
+            "win_rate_pct": 0.0,
+            "max_drawdown_pct": -13.1,
+            "note": "Historical only. Past performance does not guarantee future results."
+          },
+          {
+            "strategy": "Bollinger mean-reversion",
+            "total_return_pct": 21.19,
+            "trades": 1,
+            "win_rate_pct": 100.0,
+            "max_drawdown_pct": 0.0,
+            "note": "Historical only. Past performance does not guarantee future results."
+          }
+        ],
+        "best_by_return": "Bollinger mean-reversion",
+        "note": "Historical only. Past performance does not guarantee future results. No strategy here is a recommendation to trade."
+      }
+    },
+    "failed_symbols": {},
+    "aggregate": {
+      "SMA crossover": {
+        "symbols_with_trades": 12,
+        "mean_total_return_pct": 1.46,
+        "mean_win_rate_pct": 45.1,
+        "mean_max_drawdown_pct": -7.77,
+        "total_trades": 36
+      },
+      "MACD crossover": {
+        "symbols_with_trades": 12,
+        "mean_total_return_pct": 8.38,
+        "mean_win_rate_pct": 35.9,
+        "mean_max_drawdown_pct": -9.56,
+        "total_trades": 81
+      },
+      "RSI mean-reversion": {
+        "symbols_with_trades": 12,
+        "mean_total_return_pct": 12.44,
+        "mean_win_rate_pct": 83.3,
+        "mean_max_drawdown_pct": -2.18,
+        "total_trades": 20
+      },
+      "Bollinger mean-reversion": {
+        "symbols_with_trades": 12,
+        "mean_total_return_pct": 17.71,
+        "mean_win_rate_pct": 81.2,
+        "mean_max_drawdown_pct": -0.82,
+        "total_trades": 24
+      }
+    }
+  }
+}
