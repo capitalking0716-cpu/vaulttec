@@ -68,25 +68,27 @@ st.set_page_config(page_title="VaultTec — Financial Intelligence", page_icon="
 # anywhere — the look is the vault, not a person in it.
 st.markdown("""
 <style>
-.vt-title { text-align: center; font-size: 42px; font-weight: 800;
-  letter-spacing: 6px; margin: 0;
+.vt-title { text-align: center; font-size: 34px; font-weight: 800;
+  letter-spacing: 4px; margin: 0;
   background: linear-gradient(90deg, #f5c542, #d4af37, #f5c542);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-.vt-subtitle { text-align: center; color: #b9a8e8; letter-spacing: 4px;
-  font-size: 13px; margin: 0 0 4px 0; }
-.vt-tagline { text-align: center; color: #8b2ff7; letter-spacing: 3px;
-  font-size: 12px; margin-bottom: 18px; }
+.vt-subtitle { text-align: center; color: #b9a8e8; letter-spacing: 3px;
+  font-size: 12px; margin: 0 0 4px 0; }
+.vt-tagline { text-align: center; color: #8b2ff7; letter-spacing: 2px;
+  font-size: 11px; margin-bottom: 14px; }
 .vt-card { border: 1px solid #5b21b6; border-radius: 10px;
-  background: #121214; padding: 14px 16px; margin-bottom: 10px;
-  box-shadow: 0 0 14px rgba(139, 47, 247, 0.25); }
-.vt-card-label { color: #b9a8e8; font-size: 13px; margin: 0; }
-.vt-card-value { color: #d4af37; font-size: 26px; font-weight: 700; margin: 2px 0; }
-.vt-card-delta { font-size: 13px; margin: 0; }
+  background: #121214; padding: 10px 12px; margin-bottom: 8px;
+  box-shadow: 0 0 14px rgba(139, 47, 247, 0.25);
+  min-height: 110px; overflow-wrap: break-word; }
+.vt-card-label { color: #b9a8e8; font-size: 12px; margin: 0; }
+.vt-card-value { color: #d4af37; font-size: 21px; font-weight: 700; margin: 2px 0;
+  white-space: nowrap; }
+.vt-card-delta { font-size: 12px; margin: 0; }
 .vt-up { color: #26a69a; } .vt-down { color: #ef5350; }
 .vt-tool { border: 1px solid #5b21b6; border-radius: 10px;
-  background: #121214; padding: 12px; text-align: center; margin-bottom: 10px;
-  box-shadow: 0 0 10px rgba(139, 47, 247, 0.20); }
-.vt-tool b { color: #e8e4d8; } .vt-tool span { color: #26a69a; font-size: 12px; }
+  background: #121214; padding: 10px 6px; text-align: center; margin-bottom: 8px;
+  box-shadow: 0 0 10px rgba(139, 47, 247, 0.20); min-height: 74px; }
+.vt-tool b { color: #e8e4d8; font-size: 13px; } .vt-tool span { color: #26a69a; font-size: 11px; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -282,8 +284,8 @@ with tab_dashboard:
     wins = sum(1 for t in closed_trades if (t.pnl or 0) > 0)
     win_rate = (wins / len(closed_trades) * 100) if closed_trades else None
     win_label = f"{win_rate:.1f}%" if win_rate is not None else "—"
-    win_delta = (f"{len(closed_trades)} closed trade(s), {wins} win(s)"
-                 if closed_trades else "No closed trades yet — win rate starts with your first close")
+    win_delta = (f"{len(closed_trades)} closed, {wins} win(s)"
+                 if closed_trades else "No closed trades yet")
     pnl_class = "vt-up" if pnl >= 0 else "vt-down"
     pnl_arrow = "▲" if pnl >= 0 else "▼"
 
@@ -346,8 +348,11 @@ with tab_dashboard:
     st.plotly_chart(indicator_chart(_best_hist, _best.symbol),
                     use_container_width=True)
 
-    # --- Bottom row: Your Assets / Trading Tools / Ava ------------------------
-    _b1, _b2, _b3 = st.columns(3)
+    # --- Bottom row: Your Assets / Ava, then Trading Tools full-width ------
+    # Assets uses a dataframe (scrolls sideways on narrow screens) instead
+    # of a table, so column letters never squish. Tools get a full-width
+    # row of their own so they are not crammed into a third of the page.
+    _b1, _b3 = st.columns([3, 2])
     with _b1:
         st.subheader("💰 Your Assets")
         _rows = []
@@ -360,25 +365,8 @@ with tab_dashboard:
                 _q = quotes[_sym]
                 _rows.append({"Asset": _sym, "Qty": "—",
                               "Price": f"${_q.price:,.2f}",
-                              "Value": f"{_q.change_pct:+.2f}%"})
-        st.table(_rows)
-    with _b2:
-        st.subheader("🛠️ Trading Tools")
-        _tools = [
-            ("🤖 Auto Trade", "ON" if automation.enabled else "OFF — your choice"),
-            ("🔎 Market Scanner", "Scanner tab"),
-            ("🧪 Backtest", "Results tab"),
-            ("🛡️ Risk Control", "Trade tab — wide-6"),
-            ("💜 Ava", "Results tab — ask her"),
-            ("🔄 Portfolio Sync", "Live Paper tab"),
-        ]
-        for _i in range(0, len(_tools), 2):
-            _t1, _t2 = st.columns(2)
-            for _col, (_name, _status) in zip((_t1, _t2), _tools[_i:_i + 2]):
-                _col.markdown(
-                    f'<div class="vt-tool"><b>{_name}</b><br><span>{_status}</span></div>',
-                    unsafe_allow_html=True,
-                )
+                              "Change": f"{_q.change_pct:+.2f}%"})
+        st.dataframe(_rows, use_container_width=True, hide_index=True)
     with _b3:
         st.subheader("💜 Ava")
         _ava_img = Path(__file__).resolve().parent / "assets" / "ava.png"
@@ -387,6 +375,21 @@ with tab_dashboard:
         st.write("Ava — your trading AI. She hates losing money, learns "
                  "from every closed trade, and never places one herself. "
                  "Ask her in the Results tab.")
+    st.subheader("🛠️ Trading Tools")
+    _tools = [
+        ("🤖 Auto Trade", "ON" if automation.enabled else "OFF — your choice"),
+        ("🔎 Market Scanner", "Scanner tab"),
+        ("🧪 Backtest", "Results tab"),
+        ("🛡️ Risk Control", "Trade tab — wide-6"),
+        ("💜 Ava", "Results tab — ask her"),
+        ("🔄 Portfolio Sync", "Live Paper tab"),
+    ]
+    _tool_cols = st.columns(6)
+    for _col, (_name, _status) in zip(_tool_cols, _tools):
+        _col.markdown(
+            f'<div class="vt-tool"><b>{_name}</b><br><span>{_status}</span></div>',
+            unsafe_allow_html=True,
+        )
 
     # --- Dashboard charts: allocation + P&L by symbol ------------------------
     holdings_value = {
