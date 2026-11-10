@@ -17,7 +17,8 @@ from pathlib import Path
 
 import streamlit as st
 
-from vaulttec.ai_assistant import Assistant
+from vaulttec.ai_assistant import Assistant  # kept for reference; Ava replaces it in the app
+from vaulttec.ava import Ava, load_lessons, review_closed_trades
 from vaulttec.analytics import (
     accuracy_summary, analyse_history, backtest_macd_crossover,
     backtest_sma_crossover, generate_signal, get_signal_history,
@@ -157,8 +158,10 @@ if "risk" not in st.session_state:
     st.session_state.risk = RiskEngine()
 if "engine" not in st.session_state:
     st.session_state.engine = PaperTradingEngine(st.session_state.portfolio, st.session_state.risk)
-if "assistant" not in st.session_state:
-    st.session_state.assistant = Assistant()
+if "ava" not in st.session_state:
+    # Ava replaces the old Vault assistant in the app. She is her own
+    # AI, not Shadow — Shadow is the chat assistant; Ava lives here.
+    st.session_state.ava = Ava()
 if "automation" not in st.session_state:
     # One automation engine for the whole session. Phase 3 fix: the
     # emergency-stop button used to build a throwaway engine, so the
@@ -419,32 +422,34 @@ with tab_results:
     if cum_fig is not None:
         st.plotly_chart(cum_fig, use_container_width=True)
 
-    # --- AI Assistant (Phase 2) ------------------------------------------------
-    st.header("🤖 Vault — your AI assistant")
-    st.write(st.session_state.assistant.briefing(value, pnl, signals))
-    if st.button("☀️ Give me today's briefing"):
-        acc = accuracy_summary(settings.db_path)
-        st.write(st.session_state.assistant.daily_briefing(scan_results, value, pnl, acc))
-    strategy = st.selectbox(
-        "Explain a strategy or concept",
-        ["", "SMA crossover", "MACD crossover", "stop-loss", "position sizing",
-         "diversification", "risk/reward", "Bollinger Bands", "RSI"],
-        key="strategy_picker",
+    # --- Ava — the trading AI inside the app (replaces the old Vault assistant)
+    st.header("💜 Ava — your trading AI")
+    _ava_path = Path(__file__).resolve().parent / "assets" / "ava.png"
+    if _ava_path.exists():
+        st.image(str(_ava_path), width=220)
+    _ava_ctx = build_context_snapshot(
+        profile, portfolio, engine, signals, prices,
+        portfolio.cash, value, pnl,
     )
-    if strategy:
-        st.write(st.session_state.assistant.explain_strategy(strategy))
-    if st.button("Explain the market on my chosen symbol"):
-        st.write(st.session_state.assistant.explain_market(ta_symbol, ind))
-    question = st.text_input("Ask Vault a question", placeholder="e.g. What is a stop-loss?")
-    if question:
-        st.write(st.session_state.assistant.answer(
-            question,
-            context={"portfolio_value": value, "cash": portfolio.cash,
-                     "holdings": [{"symbol": t.symbol, "quantity": t.quantity}
-                                  for t in engine.trades],
-                     "exposure": portfolio.exposure(prices),
-                     "signals": signals, "scan_results": scan_results,
-                     "daily_pnl": pnl}))
+    st.write(st.session_state.ava.brief(_ava_ctx))
+    if st.button("📖 Review my closed trades — learn from them",
+                 use_container_width=True, key="ava_review"):
+        _new_lessons = review_closed_trades(engine)
+        if _new_lessons:
+            st.success(f"Ava learned {_new_lessons} new lesson(s) from your closed trades.")
+        else:
+            st.write("Nothing new to learn yet — every closed trade already has a lesson, "
+                     "or no trades have closed yet.")
+    _ava_lessons = load_lessons(limit=5)
+    if _ava_lessons:
+        st.subheader("What Ava has learned")
+        for _lesson in _ava_lessons:
+            st.write(f"- {_lesson['lesson']}")
+    _ava_q = st.text_input("Ask Ava a question",
+                           placeholder="e.g. Should I close GOOGL? Is META worth a trade today?",
+                           key="ava_question")
+    if _ava_q:
+        st.write(st.session_state.ava.ask(_ava_q, _ava_ctx))
 
     # --- Signal history + accuracy (Phase 2) -------------------------------------
     st.header("📜 Signal History — are the signals worth anything?")
