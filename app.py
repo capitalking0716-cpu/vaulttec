@@ -25,6 +25,11 @@ from vaulttec.analytics import (
 )
 from vaulttec.analytics.signal_history import init_signal_history
 from vaulttec.automation import AutomationEngine
+from vaulttec.charts import (
+    allocation_chart, candlestick_chart, cumulative_pnl_chart,
+    indicator_chart, pnl_by_symbol_chart, scanner_confidence_chart,
+    strategy_comparison_chart,
+)
 from vaulttec.config import RISK_PROFILES, get_settings
 from vaulttec.db import init_db
 from vaulttec.db.models import UserProfile
@@ -43,6 +48,9 @@ from vaulttec.private_live.panel import (
     run_private_scan,
 )
 from vaulttec.risk import RiskEngine
+from vaulttec.shadow_bridge import (
+    build_context_snapshot, load_notes, load_questions, save_question,
+)
 
 DISCLOSURE = (
     "⚠️ Risk disclosure: Trading involves substantial risk of loss. "
@@ -219,7 +227,7 @@ st.warning(DISCLOSURE)
 # --- Tabs: one short scroll per section, not one long page -------------
 # Order matches the original layout, so every variable a later
 # section needs is still defined before it is used.
-tab_dashboard, tab_scanner, tab_trade, tab_results, tab_live_paper, tab_private = st.tabs(["Dashboard", "Scanner", "Trade", "Results", "Live Paper", "Private"])
+tab_dashboard, tab_scanner, tab_trade, tab_results, tab_live_paper, tab_private, tab_shadow = st.tabs(["Dashboard", "Scanner", "Trade", "Results", "Live Paper", "Private", "Shadow"])
 
 with tab_dashboard:
     # --- Portfolio metrics -----------------------------------------------------
@@ -233,6 +241,21 @@ with tab_dashboard:
     c2.metric("Total P&L (paper)", f"${pnl:,.2f}")
     c3.metric("Cash available (paper)", f"${portfolio.cash:,.2f}")
     c4.metric("Risk exposure", f"${portfolio.exposure(prices):,.2f}")
+
+    # --- Dashboard charts: allocation + P&L by symbol ------------------------
+    holdings_value = {
+        s: h.quantity * prices.get(s, h.avg_cost)
+        for s, h in portfolio.holdings.items()
+    }
+    chart1, chart2 = st.columns(2)
+    chart1.plotly_chart(allocation_chart(portfolio.cash, holdings_value),
+                        use_container_width=True)
+    if engine.trades:
+        chart2.plotly_chart(pnl_by_symbol_chart(engine.trades, prices),
+                            use_container_width=True)
+    else:
+        chart2.write("No paper trades yet — place your first trade in the "
+                     "Trade tab and the P&L chart will appear here.")
 
     # --- Watchlist + signals ---------------------------------------------------
     st.header("Market Intelligence")
@@ -264,6 +287,9 @@ with tab_scanner:
     st.caption("Stocks + crypto, ranked by signal strength. A high rank means several "
                "independent checks agreed — it is still an observation, not a promise.")
     scan_results = scan_watchlist(provider_name=settings.data_provider)
+    conf_fig = scanner_confidence_chart(scan_results)
+    if conf_fig is not None:
+        st.plotly_chart(conf_fig, use_container_width=True)
     if scan_results and scan_results[0].get("source") == "sample":
         st.caption("Data source: sample (offline demo data). Switch the data provider to "
                    "yfinance in settings for delayed real prices.")
@@ -294,7 +320,8 @@ with tab_scanner:
     if ind["atr"] == ind["atr"]:
         st.write(f"- Typical daily move (ATR): about ${ind['atr']:.2f} — a stop-loss tighter than "
                  "that can be hit by ordinary daily noise.")
-    st.line_chart(ta_history.set_index("date")["close"])
+    st.plotly_chart(candlestick_chart(ta_history, ta_symbol), use_container_width=True)
+    st.plotly_chart(indicator_chart(ta_history, ta_symbol), use_container_width=True)
 
     # --- Historical analysis (Phase 2) ------------------------------------------
     st.header("🕰️ Historical Analysis — what this market actually did")
@@ -388,6 +415,9 @@ with tab_results:
     else:
         st.write("No paper trades yet. Your first paper trade starts the journal — "
                  "aim for 30–50 paper trades before any live trading is even considered.")
+    cum_fig = cumulative_pnl_chart(engine.trades)
+    if cum_fig is not None:
+        st.plotly_chart(cum_fig, use_container_width=True)
 
     # --- AI Assistant (Phase 2) ------------------------------------------------
     st.header("🤖 Vault — your AI assistant")
@@ -438,6 +468,8 @@ with tab_results:
     st.caption("Four strategies on the same SPY history, compared side by side. "
                "A good past result is not a promise about the future.")
     suite = run_backtest_suite(provider.get_history("SPY", days=180))
+    st.plotly_chart(strategy_comparison_chart(suite["strategies"]),
+                    use_container_width=True)
     st.table([{"Strategy": s["strategy"], "Return": f"{s['total_return_pct']:+.2f}%",
                "Trades": s["trades"], "Win rate": f"{s['win_rate_pct']:.1f}%",
                "Worst drawdown": f"{s['max_drawdown_pct']:.1f}%"}
@@ -837,6 +869,72 @@ with tab_private:
         st.caption("Phone access needs the hosted deploy — see DEPLOY.md. "
                    "Until the app is deployed on Streamlit Cloud, it only "
                    "runs on a local PC at localhost:8501.")
+
+with tab_shadow:
+    # --- Shadow — your assistant, inside YOUR private system only --------
+    # This tab is private, like the Private tab: it stays locked until
+    # your VaultTec login password is set (VAULTTEC_LOGIN_PASSWORD).
+    # It is never part of the public product — no customer ever sees
+    # it, and nothing saved here leaves your PC.
+    # Shadow does not run inside Streamlit. This tab is the bridge:
+    # it shows Shadow exactly what the app sees, saves your question
+    # with that context to data/shadow-questions.jsonl (local only),
+    # and Shadow answers in the Muse chat with your real numbers in
+    # front of it. Nothing here trades or sends anything on its own.
+    st.header("🌑 Shadow — ask me, with your real numbers")
+    if not login_password_set(_login_password):
+        st.error(
+            "🔐 Private only — set your VaultTec login password first. "
+            "This Shadow tab is part of your private system, not the "
+            "public app, so it stays locked until a login password is "
+            "set — in Streamlit Cloud, open the app's Settings → Secrets "
+            "and add VAULTTEC_LOGIN_PASSWORD = \"the password you choose\", "
+            "then reboot the app (see DEPLOY.md)."
+        )
+    else:
+        st.write(
+            "I'm Shadow, your assistant — the same one you talk to in chat. "
+            "I don't live inside this app, so this tab is how we merge: it "
+            "shows me your positions, P&L, signals and limits, and saves "
+            "your question with all of that attached. Then ask me in the "
+            "Muse chat and I'll answer with your actual app data in front "
+            "of me — not generic advice."
+        )
+        _snap = build_context_snapshot(
+            profile, portfolio, engine, signals, prices,
+            portfolio.cash, value, pnl,
+        )
+        _sc1, _sc2, _sc3 = st.columns(3)
+        _sc1.metric("Portfolio value (paper)", f"${_snap['portfolio']['value']:,.2f}")
+        _sc2.metric("Total P&L (paper)", f"${_snap['portfolio']['pnl']:,.2f}")
+        _sc3.metric("Open trades", str(len(_snap["open_trades"])))
+        st.subheader("What Shadow sees right now")
+        st.json(_snap, expanded=False)
+        _q = st.text_area(
+            "Ask Shadow a question",
+            placeholder="e.g. Should I close GOOGL? What does the scanner think of META today?",
+            key="shadow_question",
+        )
+        if st.button("💾 Save this question for Shadow", use_container_width=True,
+                     key="shadow_save"):
+            if not _q.strip():
+                st.warning("Type a question first.")
+            else:
+                _path = save_question(_q, _snap)
+                st.success(
+                    "Saved. Now send me the same question in the Muse chat "
+                    "and I'll answer it with these numbers in front of me. "
+                    f"(Saved locally at data/shadow-questions.jsonl — never uploaded.)"
+                )
+        _past = load_questions()
+        if _past:
+            st.subheader("Your saved questions")
+            for _row in _past:
+                st.write(f"- **{_row['asked_at'][:16]}** — {_row['question']}")
+        _notes = load_notes()
+        if _notes:
+            st.subheader("Notes from Shadow")
+            st.markdown(_notes)
 
 st.markdown("---")
 st.caption(DISCLOSURE)
