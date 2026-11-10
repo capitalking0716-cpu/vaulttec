@@ -63,6 +63,18 @@ DISCLOSURE = (
 
 st.set_page_config(page_title="VaultTec — Financial Intelligence", page_icon="🏦", layout="wide")
 
+# Ava's brain keys live in Streamlit Secrets (Cloud: Settings → Secrets;
+# local PC: .streamlit/secrets.toml). Secrets do not always arrive as
+# environment variables on their own, so copy them into the environment
+# here — Ava's llm module reads them from there. Values are never
+# shown in the UI and never logged.
+for _key in ("AVA_API_KEY", "AVA_BASE_URL", "AVA_MODEL"):
+    try:
+        if _key in st.secrets and _key not in os.environ:
+            os.environ[_key] = str(st.secrets[_key])
+    except Exception:  # noqa: BLE001 — no Secrets configured yet: Ava runs offline
+        pass
+
 # --- VaultTec dashboard theme: black / deep purple / metallic gold --------
 # Glowing purple-bordered cards, gold headings, no character imagery
 # anywhere — the look is the vault, not a person in it.
