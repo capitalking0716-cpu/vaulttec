@@ -18,12 +18,18 @@ from pathlib import Path
 import streamlit as st
 
 from vaulttec.ai_assistant import Assistant  # kept for reference; Ava replaces it in the app
-from vaulttec.ava import Ava, list_clips, load_evidence, load_lessons, random_clip, review_closed_trades
+from vaulttec.ava import (Ava, list_clips, load_evidence,
+                          load_lessons, load_live_paper_positions,
+                          load_private_proposals, random_clip,
+                          review_closed_trades)
+from vaulttec.ava.context import build_context_snapshot
 from vaulttec.analytics import (
     accuracy_summary, analyse_history, backtest_macd_crossover,
     backtest_sma_crossover, generate_signal, get_signal_history,
-    record_signal, run_backtest_suite, scan_watchlist, top_opportunities,
+    record_signal, run_backtest_suite, scan_watchlist, signal_checks,
+    top_opportunities,
 )
+from vaulttec.dashboard import build_available_trades
 from vaulttec.analytics.signal_history import init_signal_history
 from vaulttec.automation import AutomationEngine
 from vaulttec.charts import (
@@ -49,9 +55,6 @@ from vaulttec.private_live.panel import (
     run_private_scan,
 )
 from vaulttec.risk import RiskEngine
-from vaulttec.shadow_bridge import (
-    build_context_snapshot, load_notes, load_questions, save_question,
-)
 
 DISCLOSURE = (
     "⚠️ Risk disclosure: Trading involves substantial risk of loss. "
@@ -200,8 +203,8 @@ if "risk" not in st.session_state:
 if "engine" not in st.session_state:
     st.session_state.engine = PaperTradingEngine(st.session_state.portfolio, st.session_state.risk)
 if "ava" not in st.session_state:
-    # Ava replaces the old Vault assistant in the app. She is her own
-    # AI, not Shadow — Shadow is the chat assistant; Ava lives here.
+    # Ava replaces the old Vault assistant in the app. She is the
+    # trading AI; she lives here.
     st.session_state.ava = Ava()
 if "automation" not in st.session_state:
     # One automation engine for the whole session. Phase 3 fix: the
@@ -271,12 +274,14 @@ st.warning(DISCLOSURE)
 # --- Tabs: one short scroll per section, not one long page -------------
 # Order matches the original layout, so every variable a later
 # section needs is still defined before it is used.
-tab_dashboard, tab_scanner, tab_trade, tab_results, tab_live_paper, tab_private, tab_shadow = st.tabs(["Dashboard", "Scanner", "Trade", "Results", "Live Paper", "Private", "Shadow"])
+tab_dashboard, tab_scanner, tab_trade, tab_results, tab_live_paper, tab_private = st.tabs(["Dashboard", "Scanner", "Trade", "Results", "Live Paper", "Private"])
 
 with tab_dashboard:
-    # --- VaultTec dashboard theme: gold header, glowing metric cards,
-    # big candlestick chart, assets / tools / Ava row. No character
-    # imagery — the look is the vault itself.
+    # --- Dashboard: the brand header, then available trades ONLY. --------
+    # Everything else that used to live here moved to the tab it belongs
+    # in: metric cards + Win Rate + assets + portfolio charts to Results;
+    # the candlestick chart + trading tools to Trade; Ava already lives
+    # in Results. No character imagery — the look is the vault itself.
     import datetime as _dt
     _today = _dt.datetime.now().strftime("%I:%M %p EST · %b %d, %Y")
     st.markdown(
@@ -301,145 +306,75 @@ with tab_dashboard:
     pnl_class = "vt-up" if pnl >= 0 else "vt-down"
     pnl_arrow = "▲" if pnl >= 0 else "▼"
 
-    def _metric_card(label: str, value_text: str, delta: str, delta_class: str = "vt-up"):
-        st.markdown(
-            f'<div class="vt-card"><p class="vt-card-label">{label}</p>'
-            f'<p class="vt-card-value">{value_text}</p>'
-            f'<p class="vt-card-delta {delta_class}">{delta}</p></div>',
-            unsafe_allow_html=True,
-        )
+    # --- Portfolio metrics are computed above for the whole app (Results
+    # shows the cards, Trade sizes from the same numbers) — this tab
+    # shows no metrics of its own. -------------------------------------
 
-    c1, c2, c3, c4 = st.columns(4)
-    with c1:
-        _metric_card("Total Portfolio", f"${value:,.2f}",
-                     f"{pnl_arrow} {pnl:+,.2f} vs start" if pnl else "Paper money only",
-                     pnl_class)
-        st.plotly_chart(sparkline_chart(
-            provider.get_history("SPY", days=60)["close"].tolist(), UP),
-            use_container_width=True)
-    with c2:
-        _metric_card("Total P&L (paper)", f"${pnl:,.2f}",
-                     f"{pnl_arrow} {pnl / settings.paper_starting_cash * 100:+.1f}% of starting cash",
-                     pnl_class)
-        st.plotly_chart(sparkline_chart(
-            provider.get_history("BTC-USD", days=60)["close"].tolist(), GOLD),
-            use_container_width=True)
-    with c3:
-        _metric_card("Win Rate", win_label, win_delta,
-                     "vt-up" if (win_rate or 0) >= 50 else "vt-down")
-        if closed_trades:
-            _cum, _run = [0.0], 0.0
-            for _t in closed_trades:
-                _run += _t.pnl or 0
-                _cum.append(_run)
-            st.plotly_chart(sparkline_chart(_cum, PURPLE), use_container_width=True)
-        else:
-            st.write("Paper trades only — no wins or losses yet.")
-    with c4:
-        _metric_card("Active AI Agents", "Ava + Scanner",
-                     "🟢 Online — Ava answers in Results", "vt-up")
-        _conf = [s.confidence * 100 for s in
-                 [generate_signal(sym, provider.get_history(sym))
-                  for sym in settings.watchlist]]
-        st.plotly_chart(sparkline_chart(_conf, PURPLE), use_container_width=True)
+    # --- The candlestick chart moved to the Trade tab, on the symbol
+    # being traded. -----------------------------------------------------
 
-    # --- Market Overview: the big candlestick chart --------------------------
-    _signals_preview = [
-        generate_signal(sym, provider.get_history(sym)) for sym in settings.watchlist
-    ]
-    _best = max(_signals_preview, key=lambda s: s.confidence)
-    _best_hist = provider.get_history(_best.symbol, days=120)
-    _best_q = quotes[_best.symbol]
-    _b_arrow = "▲" if _best_q.change_pct >= 0 else "▼"
-    st.subheader(f"📈 Market Overview — {_best.symbol} "
-                 f"${_best_q.price:,.2f} {_b_arrow} {_best_q.change_pct:+.2f}%")
-    st.caption(f"Strongest signal right now: {_best.symbol} — {_best.direction} "
-               f"({_best.confidence:.0%} confidence). A signal is not a trade.")
-    st.plotly_chart(candlestick_chart(_best_hist, _best.symbol),
-                    use_container_width=True)
-    st.plotly_chart(indicator_chart(_best_hist, _best.symbol),
-                    use_container_width=True)
+    # --- Your Assets moved to Results; the Ava card was removed because
+    # she already lives in Results; Trading Tools moved to Trade. --------
 
-    # --- Bottom row: Your Assets / Ava, then Trading Tools full-width ------
-    # Assets uses a dataframe (scrolls sideways on narrow screens) instead
-    # of a table, so column letters never squish. Tools get a full-width
-    # row of their own so they are not crammed into a third of the page.
-    _b1, _b3 = st.columns([3, 2])
-    with _b1:
-        st.subheader("💰 Your Assets")
-        _rows = []
-        for _sym, _h in portfolio.holdings.items():
-            _rows.append({"Asset": _sym, "Qty": _h.quantity,
-                          "Price": f"${prices.get(_sym, _h.avg_cost):,.2f}",
-                          "Value": f"${_h.quantity * prices.get(_sym, _h.avg_cost):,.2f}"})
-        for _sym in settings.watchlist:
-            if _sym not in portfolio.holdings:
-                _q = quotes[_sym]
-                _rows.append({"Asset": _sym, "Qty": "—",
-                              "Price": f"${_q.price:,.2f}",
-                              "Change": f"{_q.change_pct:+.2f}%"})
-        st.dataframe(_rows, use_container_width=True, hide_index=True)
-    with _b3:
-        st.subheader("💜 Ava")
-        _ava_img = Path(__file__).resolve().parent / "assets" / "ava.png"
-        if _ava_img.exists():
-            st.image(str(_ava_img), width=180)
-        st.write("Ava — your trading AI. She hates losing money, learns "
-                 "from every closed trade, and never places one herself. "
-                 "Ask her in the Results tab.")
-    st.subheader("🛠️ Trading Tools")
-    _tools = [
-        ("🤖 Auto Trade", "ON" if automation.enabled else "OFF — your choice"),
-        ("🔎 Market Scanner", "Scanner tab"),
-        ("🧪 Backtest", "Results tab"),
-        ("🛡️ Risk Control", "Trade tab — wide-6"),
-        ("💜 Ava", "Results tab — ask her"),
-        ("🔄 Portfolio Sync", "Live Paper tab"),
-    ]
-    _tool_cols = st.columns(6)
-    for _col, (_name, _status) in zip(_tool_cols, _tools):
-        _col.markdown(
-            f'<div class="vt-tool"><b>{_name}</b><br><span>{_status}</span></div>',
-            unsafe_allow_html=True,
-        )
+    # --- The allocation + P&L-by-symbol charts moved to Results, next
+    # to Your Assets. ----------------------------------------------------
 
-    # --- Dashboard charts: allocation + P&L by symbol ------------------------
-    holdings_value = {
-        s: h.quantity * prices.get(s, h.avg_cost)
-        for s, h in portfolio.holdings.items()
-    }
-    chart1, chart2 = st.columns(2)
-    chart1.plotly_chart(allocation_chart(portfolio.cash, holdings_value),
-                        use_container_width=True)
-    if engine.trades:
-        chart2.plotly_chart(pnl_by_symbol_chart(engine.trades, prices),
-                            use_container_width=True)
-    else:
-        chart2.write("No paper trades yet — place your first trade in the "
-                     "Trade tab and the P&L chart will appear here.")
-
-    # --- Watchlist + signals ---------------------------------------------------
-    st.header("Market Intelligence")
-    cols = st.columns(len(settings.watchlist))
+    # --- Available trades — the only content on this tab ----------------
+    # Wide-6 mean-reversion setups from the scanner pipeline: a long
+    # signal, the trigger fired (RSI <= 30 or price at the lower
+    # Bollinger band), confidence at or above the scanner floor. No
+    # shorts — VaultTec does not short. Each card is one trade with
+    # the plain-words setup, entry, stop, target, risk/reward and the
+    # dollars at risk on a full-size position. A signal is not a
+    # trade: the button only pre-selects the symbol in the Trade tab,
+    # and Ava checks any move in Results first.
+    st.subheader("Available trades — today's wide-6 setups")
+    st.caption("Paper trading only — virtual money. You decide YES or NO on "
+               "every trade; nothing here places one.")
+    _histories = {}
     signals = []
-    for col, symbol in zip(cols, settings.watchlist):
-        q = quotes[symbol]
-        history = provider.get_history(symbol)
-        sig = generate_signal(symbol, history)
-        signals.append(sig)
-        arrow = "▲" if q.change_pct >= 0 else "▼"
-        col.metric(symbol, f"${q.price:,.2f}", f"{arrow} {q.change_pct:+.2f}%")
-        col.caption(f"Signal: {sig.direction} ({sig.confidence:.0%})")
-
-    st.subheader("Active signals — with the evidence, not a promise")
+    for _sym in settings.watchlist:
+        _hist = provider.get_history(_sym)
+        _histories[_sym] = _hist
+        signals.append(generate_signal(_sym, _hist))
     if "signals_recorded" not in st.session_state:
         st.session_state.signals_recorded = set()
-    for sig in signals:
-        st.write(f"**{sig.symbol}** — {sig.direction} ({sig.confidence:.0%}): {sig.evidence}")
-        # Record each symbol's signal once per session, not on every page reload.
-        if sig.symbol not in st.session_state.signals_recorded:
-            record_signal(settings.db_path, sig, prices[sig.symbol])
-            st.session_state.signals_recorded.add(sig.symbol)
+    for _sig in signals:
+        # Record each symbol's signal once per session, not on every reload.
+        if _sig.symbol not in st.session_state.signals_recorded:
+            record_signal(settings.db_path, _sig, prices[_sig.symbol])
+            st.session_state.signals_recorded.add(_sig.symbol)
+    _held = {t.symbol for t in engine.trades if t.status == "open"}
+    _available = build_available_trades(
+        signals,
+        {s: signal_checks(s, _histories[s]) for s in settings.watchlist},
+        quotes, value, st.session_state.risk, held_symbols=_held,
+    )
+    if not _available:
+        st.write("No available trades right now — nothing cleared the wide-6 "
+                 "bar today. That is normal, and better than forcing a trade.")
+    else:
+        for _trade in _available:
+            with st.container(border=True):
+                st.write(f"**BUY {_trade['symbol']}** — "
+                         f"{_trade['confidence']:.0%} confidence")
+                st.write(_trade["setup"])
+                st.write(f"Entry **${_trade['entry']:,.2f}** — stop "
+                         f"**${_trade['stop_loss']:,.2f}** — target "
+                         f"**${_trade['take_profit']:,.2f}** — risk/reward "
+                         f"**{_trade['risk_reward']}**")
+                st.write(f"Size: ~{_trade['shares_label']} shares (10% of the pot) — "
+                         f"risk **${_trade['risk_usd']:,.2f}** if the stop fires — "
+                         f"gain **${_trade['reward_usd']:,.2f}** if the target fills")
+                if st.button(f"▶️ Set up this trade — {_trade['symbol']}",
+                             use_container_width=True,
+                             key=f"dash_trade_{_trade['symbol']}"):
+                    st.session_state["trade_symbol"] = _trade["symbol"]
+                    st.success(f"{_trade['symbol']} is ready in the Trade tab — "
+                               "open it to place this paper trade.")
+                    st.rerun()
+    st.caption("Not sure about a trade? Ask Ava — Results tab → Check my move. "
+               "She argues against a bad play first.")
 
 
 with tab_scanner:
@@ -509,6 +444,14 @@ with tab_trade:
     st.write(f"**{trade_symbol}** — ${trade_q.price:,.2f} — signal: "
              f"**{trade_sig.direction}** ({trade_sig.confidence:.0%})")
     st.write(trade_sig.evidence)
+    # --- Chart — moved here from the Dashboard's Market Overview ------------
+    # The chart follows the symbol being traded, so the decision and
+    # the picture are on the same screen.
+    st.subheader(f"Chart — {trade_symbol}")
+    st.plotly_chart(candlestick_chart(trade_history, trade_symbol),
+                    use_container_width=True)
+    st.plotly_chart(indicator_chart(trade_history, trade_symbol),
+                    use_container_width=True)
     trade_check = st.session_state.risk.check_order(
         symbol=trade_symbol, price=trade_q.price, quantity=1,
         stop_loss=trade_q.price * 0.94, take_profit=trade_q.price * 1.09,
@@ -564,9 +507,104 @@ with tab_trade:
             st.success("Automation enabled — paper only, risk-checked, kill-switch ready.")
         else:
             st.error("Automation could not be enabled.")
+    # --- Trading Tools — moved here from the Dashboard ----------------------
+    # A full-width row of its own so the tiles are not crammed into a
+    # third of the page. They point at the tabs they belong in.
+    st.subheader("🛠️ Trading Tools")
+    _tools = [
+        ("🤖 Auto Trade", "ON" if automation.enabled else "OFF — your choice"),
+        ("🔎 Market Scanner", "Scanner tab"),
+        ("🧪 Backtest", "Results tab"),
+        ("🛡️ Risk Control", "Trade tab — wide-6"),
+        ("💜 Ava", "Results tab — ask her"),
+        ("🔄 Portfolio Sync", "Live Paper tab"),
+    ]
+    _tool_cols = st.columns(6)
+    for _col, (_name, _status) in zip(_tool_cols, _tools):
+        _col.markdown(
+            f'<div class="vt-tool"><b>{_name}</b><br><span>{_status}</span></div>',
+            unsafe_allow_html=True,
+        )
 
 
 with tab_results:
+    # --- Portfolio snapshot — moved here from the Dashboard ----------------
+    # The Dashboard shows available trades only now; the numbers live
+    # here, where the results are. Uses the portfolio numbers computed
+    # in the Dashboard block above (same run, same prices).
+    def _metric_card(label: str, value_text: str, delta: str, delta_class: str = "vt-up"):
+        st.markdown(
+            f'<div class="vt-card"><p class="vt-card-label">{label}</p>'
+            f'<p class="vt-card-value">{value_text}</p>'
+            f'<p class="vt-card-delta {delta_class}">{delta}</p></div>',
+            unsafe_allow_html=True,
+        )
+
+    st.subheader("Portfolio snapshot")
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        _metric_card("Total Portfolio", f"${value:,.2f}",
+                     f"{pnl_arrow} {pnl:+,.2f} vs start" if pnl else "Paper money only",
+                     pnl_class)
+        st.plotly_chart(sparkline_chart(
+            provider.get_history("SPY", days=60)["close"].tolist(), UP),
+            use_container_width=True)
+    with c2:
+        _metric_card("Total P&L (paper)", f"${pnl:,.2f}",
+                     f"{pnl_arrow} {pnl / settings.paper_starting_cash * 100:+.1f}% of starting cash",
+                     pnl_class)
+        st.plotly_chart(sparkline_chart(
+            provider.get_history("BTC-USD", days=60)["close"].tolist(), GOLD),
+            use_container_width=True)
+    with c3:
+        _metric_card("Win Rate", win_label, win_delta,
+                     "vt-up" if (win_rate or 0) >= 50 else "vt-down")
+        if closed_trades:
+            _cum, _run = [0.0], 0.0
+            for _t in closed_trades:
+                _run += _t.pnl or 0
+                _cum.append(_run)
+            st.plotly_chart(sparkline_chart(_cum, PURPLE), use_container_width=True)
+        else:
+            st.write("Paper trades only — no wins or losses yet.")
+    with c4:
+        _metric_card("Active AI Agents", "Ava + Scanner",
+                     "🟢 Online — Ava answers in Results", "vt-up")
+        _conf = [s.confidence * 100 for s in signals]
+        st.plotly_chart(sparkline_chart(_conf, PURPLE), use_container_width=True)
+
+    # --- Your Assets — moved here from the Dashboard -----------------------
+    # A dataframe (scrolls sideways on narrow screens) instead of a
+    # table, so column letters never squish.
+    st.subheader("💰 Your Assets")
+    _rows = []
+    for _sym, _h in portfolio.holdings.items():
+        _rows.append({"Asset": _sym, "Qty": _h.quantity,
+                      "Price": f"${prices.get(_sym, _h.avg_cost):,.2f}",
+                      "Value": f"${_h.quantity * prices.get(_sym, _h.avg_cost):,.2f}"})
+    for _sym in settings.watchlist:
+        if _sym not in portfolio.holdings:
+            _q = quotes[_sym]
+            _rows.append({"Asset": _sym, "Qty": "—",
+                          "Price": f"${_q.price:,.2f}",
+                          "Change": f"{_q.change_pct:+.2f}%"})
+    st.dataframe(_rows, use_container_width=True, hide_index=True)
+
+    # --- Portfolio charts — moved here from the Dashboard ------------------
+    holdings_value = {
+        s: h.quantity * prices.get(s, h.avg_cost)
+        for s, h in portfolio.holdings.items()
+    }
+    chart1, chart2 = st.columns(2)
+    chart1.plotly_chart(allocation_chart(portfolio.cash, holdings_value),
+                        use_container_width=True)
+    if engine.trades:
+        chart2.plotly_chart(pnl_by_symbol_chart(engine.trades, prices),
+                            use_container_width=True)
+    else:
+        chart2.write("No paper trades yet — place your first trade in the "
+                     "Trade tab and the P&L chart will appear here.")
+
     # --- Trading history -------------------------------------------------------
     st.header("📓 Trading history (paper)")
     if engine.trades:
@@ -607,6 +645,73 @@ with tab_results:
         _ava_reply = st.session_state.ava.ask(_ava_prompt, _ava_ctx)
         st.session_state.ava_chat.append({"role": "assistant", "content": _ava_reply})
         st.rerun()
+    # --- Check my move: tell Ava the trade BEFORE you make it -------------
+    # She checks it against the wide-6 rules, the risk limits, your open
+    # paper positions and the private proposals — then tells you straight:
+    # good play, bad play, or fix this first. She advises only. She never
+    # places a trade; you decide YES or NO. Works with no API key.
+    st.subheader("🎯 Check my move — before you buy or sell")
+    st.write("Tell me the move before you make it. I'll argue against it first — "
+             "that's my job. A bad play is a bad play, and I'll say so. "
+             "I never place trades. You decide YES or NO.")
+    with st.form("ava_check_move", clear_on_submit=False):
+        _mc_symbol = st.text_input("Symbol", key="ava_mc_symbol").strip().upper()
+        _mc_side = st.selectbox("Side", ["buy", "sell"], key="ava_mc_side")
+        _mc_col1, _mc_col2 = st.columns(2)
+        with _mc_col1:
+            _mc_qty = st.number_input("Shares", min_value=0.0, value=0.0,
+                                      step=0.0001, format="%.4f", key="ava_mc_qty")
+            _mc_entry = st.number_input("Entry price ($)", min_value=0.0, value=0.0,
+                                        step=0.01, format="%.2f", key="ava_mc_entry")
+        with _mc_col2:
+            _mc_stop = st.number_input("Stop-loss ($) — 0 if you have none",
+                                       min_value=0.0, value=0.0, step=0.01,
+                                       format="%.2f", key="ava_mc_stop")
+            _mc_target = st.number_input("Take-profit ($) — 0 if you have none",
+                                         min_value=0.0, value=0.0, step=0.01,
+                                         format="%.2f", key="ava_mc_target")
+        _mc_setup = st.text_area(
+            "What do you see? (optional — e.g. RSI bounced off 28, "
+            "or just chasing the news)", key="ava_mc_setup")
+        _mc_submit = st.form_submit_button("Ask Ava — is this a good play?",
+                                           use_container_width=True)
+    if _mc_submit:
+        _mc_move = {"symbol": _mc_symbol, "side": _mc_side,
+                    "quantity": _mc_qty, "entry_price": _mc_entry,
+                    "stop_loss": _mc_stop if _mc_stop > 0 else None,
+                    "take_profit": _mc_target if _mc_target > 0 else None,
+                    "setup": _mc_setup}
+        _mc_ctx = dict(_ava_ctx)
+        _mc_ctx["portfolio_value"] = _ava_ctx["portfolio"]["value"]
+        _mc_ctx["risk_tolerance"] = profile.risk_tolerance
+        _mc_root = Path(__file__).resolve().parent
+        _mc_ctx["live_positions"] = load_live_paper_positions(_mc_root)
+        _mc_ctx["pending_proposals"] = load_private_proposals(_mc_root)
+        try:
+            _mc_history = provider.get_history(_mc_symbol, days=60) if _mc_symbol else None
+        except Exception:  # noqa: BLE001 — no prices: Ava checks the risk only
+            _mc_history = None
+        st.session_state["ava_move_check"] = st.session_state.ava.check_move(
+            _mc_move, _mc_ctx, history=_mc_history)
+    if st.session_state.get("ava_move_check"):
+        st.write(st.session_state["ava_move_check"])
+    # --- Small wins watch: what to bank, what to cut -----------------------
+    # From your real open paper positions and last completed closes.
+    # A small win in hand beats a target that never comes.
+    st.subheader("💰 Small wins — what to bank, what to cut")
+    _sw_ctx = dict(_ava_ctx)
+    _sw_ctx["live_positions"] = load_live_paper_positions(
+        Path(__file__).resolve().parent)
+    _sw_flags = st.session_state.ava.small_wins_flags(_sw_ctx)
+    if _sw_flags:
+        for _flag in _sw_flags:
+            st.write(f"**{_flag['headline']}**")
+            st.write(_flag["detail"])
+            st.write(f"➡️ {_flag['action']}")
+    else:
+        st.write("Nothing to bank or cut right now — no small win is slipping, "
+                 "nothing is past its stop, and no name is carrying too much "
+                 "of the pot.")
     # --- Ava's clips: she chills, then shows off ----------------------------
     # Clips are .mp4 files in assets/clips/. Drop a new one in that folder
     # and it appears here automatically — that is how more get added later.
@@ -1090,72 +1195,6 @@ with tab_private:
         st.caption("Phone access needs the hosted deploy — see DEPLOY.md. "
                    "Until the app is deployed on Streamlit Cloud, it only "
                    "runs on a local PC at localhost:8501.")
-
-with tab_shadow:
-    # --- Shadow — your assistant, inside YOUR private system only --------
-    # This tab is private, like the Private tab: it stays locked until
-    # your VaultTec login password is set (VAULTTEC_LOGIN_PASSWORD).
-    # It is never part of the public product — no customer ever sees
-    # it, and nothing saved here leaves your PC.
-    # Shadow does not run inside Streamlit. This tab is the bridge:
-    # it shows Shadow exactly what the app sees, saves your question
-    # with that context to data/shadow-questions.jsonl (local only),
-    # and Shadow answers in the Muse chat with your real numbers in
-    # front of it. Nothing here trades or sends anything on its own.
-    st.header("🌑 Shadow — ask me, with your real numbers")
-    if not login_password_set(_login_password):
-        st.error(
-            "🔐 Private only — set your VaultTec login password first. "
-            "This Shadow tab is part of your private system, not the "
-            "public app, so it stays locked until a login password is "
-            "set — in Streamlit Cloud, open the app's Settings → Secrets "
-            "and add VAULTTEC_LOGIN_PASSWORD = \"the password you choose\", "
-            "then reboot the app (see DEPLOY.md)."
-        )
-    else:
-        st.write(
-            "I'm Shadow, your assistant — the same one you talk to in chat. "
-            "I don't live inside this app, so this tab is how we merge: it "
-            "shows me your positions, P&L, signals and limits, and saves "
-            "your question with all of that attached. Then ask me in the "
-            "Muse chat and I'll answer with your actual app data in front "
-            "of me — not generic advice."
-        )
-        _snap = build_context_snapshot(
-            profile, portfolio, engine, signals, prices,
-            portfolio.cash, value, pnl,
-        )
-        _sc1, _sc2, _sc3 = st.columns(3)
-        _sc1.metric("Portfolio value (paper)", f"${_snap['portfolio']['value']:,.2f}")
-        _sc2.metric("Total P&L (paper)", f"${_snap['portfolio']['pnl']:,.2f}")
-        _sc3.metric("Open trades", str(len(_snap["open_trades"])))
-        st.subheader("What Shadow sees right now")
-        st.json(_snap, expanded=False)
-        _q = st.text_area(
-            "Ask Shadow a question",
-            placeholder="e.g. Should I close GOOGL? What does the scanner think of META today?",
-            key="shadow_question",
-        )
-        if st.button("💾 Save this question for Shadow", use_container_width=True,
-                     key="shadow_save"):
-            if not _q.strip():
-                st.warning("Type a question first.")
-            else:
-                _path = save_question(_q, _snap)
-                st.success(
-                    "Saved. Now send me the same question in the Muse chat "
-                    "and I'll answer it with these numbers in front of me. "
-                    f"(Saved locally at data/shadow-questions.jsonl — never uploaded.)"
-                )
-        _past = load_questions()
-        if _past:
-            st.subheader("Your saved questions")
-            for _row in _past:
-                st.write(f"- **{_row['asked_at'][:16]}** — {_row['question']}")
-        _notes = load_notes()
-        if _notes:
-            st.subheader("Notes from Shadow")
-            st.markdown(_notes)
 
 st.markdown("---")
 st.caption(DISCLOSURE)

@@ -13,9 +13,11 @@ secrets, no keys, no account numbers, no personal data.
   entries. Practice means paper trading only.
 - Risk first, always: argue against a trade before arguing for one.
   Small positions, 1–2% risk per trade. Never promise profits.
-- I never place a trade myself — paper or live. The user decides
-  YES or NO on every trade. Live trading stays locked off until
-  the legal review is done.
+- I DO place paper trades myself now — Neko told me to on the night
+  of Nov 9–10, to practice our strategy and learn from every close.
+  Paper only, with evidence per trade. I never place a LIVE trade.
+  The user decides YES or NO on every live trade. Live trading
+  stays locked off until the legal review is done.
 
 ## Phase 6 verdict (accepted — do not re-decide)
 
@@ -82,12 +84,19 @@ NOT TESTED, not a failure — it waits for the data to come through.
   practice money, not income. A $100 pot moves by dollars, not
   hundreds. Past results do not promise future results.
 
-## Live account status
+## Live account status — UPDATED Nov 10 morning
 
-- The live Alpaca Individual account application is in review.
-  Nothing is funded, no live keys exist yet, live trading is
-  locked off. Paper first, always. The legal review still has to
-  happen before any real money, live trades, or public launch.
+- The live Alpaca Individual account application is still IN
+  REVIEW. Neko confirmed on the morning of Nov 10 that the "we
+  are unable to open an account for you" email (Nov 9, 8:57pm
+  EST) arrived BEFORE he finished signing up — it was about an
+  earlier failed/incomplete sign-up, NOT this application.
+- Nothing is funded yet and no live keys exist. Live trading
+  stays locked off until the application is approved AND the
+  legal review is done. Do not tell Neko to fund anything or
+  flip a live switch until both are done.
+- The 08:30 EST alarm on Tue Nov 10 is back on, for the live
+  market-open checklist.
 
 ## What stays the same
 

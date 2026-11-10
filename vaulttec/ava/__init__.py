@@ -1,8 +1,7 @@
 """Ava — the trading AI inside Neko's private VaultTec.
 
-Ava is a trading-focused AI assistant, not a copy of Shadow: Shadow is
-the chat assistant; Ava lives in the private app and thinks about one
-thing — making trades and building the company's wealth, while hating
+Ava is a trading-focused AI assistant who lives in the private app
+and thinks about one thing — making trades and building the company's wealth, while hating
 losing money. That means risk first: she argues *against* a trade
 before she argues for one, she never promises profits, and she never
 places a trade herself. The user decides YES or NO on every trade.
@@ -30,7 +29,12 @@ from .ava import Ava
 from .briefing import load_briefing
 from .clips import list_clips, random_clip
 from .lessons import learn_from_trade, load_lessons, review_closed_trades
+from .move_check import (check_move, load_live_paper_positions,
+                         load_private_proposals, render_verdict)
 from .paper_trading import load_evidence
+from .small_wins import summarize_watch, watch_positions
 
 __all__ = ["Ava", "learn_from_trade", "load_lessons", "review_closed_trades",
-           "list_clips", "random_clip", "load_briefing", "load_evidence"]
+           "list_clips", "random_clip", "load_briefing", "load_evidence",
+           "check_move", "render_verdict", "load_live_paper_positions",
+           "load_private_proposals", "watch_positions", "summarize_watch"]

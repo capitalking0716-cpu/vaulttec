@@ -29,6 +29,11 @@ from vaulttec.private_live.panel import (
 )
 
 
+# Proposal IDs are stamped with the real current date, so the expected ID
+# is built from today — a hardcoded date goes stale overnight.
+PROP_AAPL = f"PROP-{date.today().isoformat()}-AAPL"
+
+
 def test_login_password_gate():
     assert login_password_set("a-password") is True
     assert login_password_set("") is False
@@ -68,7 +73,7 @@ def test_scan_via_panel_proposes_but_places_nothing(tmp_path, monkeypatch):
     summary = run_private_scan(account_value=50.0, private_dir=tmp_path,
                                provider=provider)
     assert summary["status"] == "ok"
-    assert summary["proposals"] == ["PROP-2026-11-09-AAPL"]
+    assert summary["proposals"] == [PROP_AAPL]
     assert summary["placed"] == []
     status = get_private_status(tmp_path)
     assert status["pending_count"] == 1
@@ -84,9 +89,9 @@ def test_approve_via_panel_places_dry_run_only(tmp_path, monkeypatch):
     _clean_env(monkeypatch)
     provider = StubProvider({"AAPL": _dip_history()})
     run_private_scan(account_value=50.0, private_dir=tmp_path, provider=provider)
-    result = approve_proposal("PROP-2026-11-09-AAPL", tmp_path)
+    result = approve_proposal(PROP_AAPL, tmp_path)
     assert result["status"] == "ok"
-    assert result["placed"] == ["PROP-2026-11-09-AAPL"]
+    assert result["placed"] == [PROP_AAPL]
     assert "DRY-RUN" in result["mode"]
     status = get_private_status(tmp_path)
     assert status["pending_count"] == 0
@@ -97,8 +102,8 @@ def test_reject_via_panel_places_nothing(tmp_path, monkeypatch):
     _clean_env(monkeypatch)
     provider = StubProvider({"AAPL": _dip_history()})
     run_private_scan(account_value=50.0, private_dir=tmp_path, provider=provider)
-    assert reject_proposal("PROP-2026-11-09-AAPL", tmp_path) is True
-    assert reject_proposal("PROP-2026-11-09-AAPL", tmp_path) is False
+    assert reject_proposal(PROP_AAPL, tmp_path) is True
+    assert reject_proposal(PROP_AAPL, tmp_path) is False
     status = get_private_status(tmp_path)
     assert status["pending_count"] == 0
     assert status["open_positions_count"] == 0
@@ -112,7 +117,7 @@ def test_kill_switch_via_panel_blocks_scan_and_approve(tmp_path, monkeypatch):
     summary = run_private_scan(account_value=50.0, private_dir=tmp_path,
                                provider=provider)
     assert summary["status"] == "stopped"
-    result = approve_proposal("PROP-2026-11-09-AAPL", tmp_path)
+    result = approve_proposal(PROP_AAPL, tmp_path)
     assert result["status"] == "stopped"
     assert clear_kill_switch(tmp_path) is True
     assert clear_kill_switch(tmp_path) is False
@@ -121,4 +126,4 @@ def test_kill_switch_via_panel_blocks_scan_and_approve(tmp_path, monkeypatch):
     summary = run_private_scan(account_value=50.0, private_dir=tmp_path,
                                provider=provider)
     assert summary["status"] == "ok"
-    assert summary["proposals"] == ["PROP-2026-11-09-AAPL"]
+    assert summary["proposals"] == [PROP_AAPL]

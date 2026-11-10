@@ -1,6 +1,6 @@
 """Ava's connection to a real thinking model (optional).
 
-Ava is her own AI, separate from Shadow. To actually *think* she needs
+Ava is her own AI. To actually *think* she needs
 a model API key: ``AVA_API_KEY`` (or ``OPENAI_API_KEY``) in Streamlit
 Secrets or ``.env``, with an optional ``AVA_MODEL`` (default
 ``gpt-4o-mini``) and ``AVA_BASE_URL`` for any OpenAI-compatible

@@ -1,6 +1,6 @@
 """Ava test — her own persona, her lessons, her offline answers.
 
-Ava is her own AI, not Shadow, and she replaces the old Vault
+Ava is her own AI, and she replaces the old Vault
 assistant in the app. She never places trades, never promises
 profits, and learns one lesson per closed trade.
 """
@@ -18,10 +18,10 @@ from vaulttec.portfolio import Portfolio
 from vaulttec.risk import RiskEngine
 
 
-def test_ava_is_her_own_ai_not_shadow():
+def test_ava_is_her_own_ai():
     assert Ava.name == "Ava"
     assert "Ava" in SYSTEM_PROMPT
-    assert "not Shadow" in SYSTEM_PROMPT
+    assert "not a copy of anyone else" in SYSTEM_PROMPT
     assert "hate losing money" in SYSTEM_PROMPT
     assert "never place" in SYSTEM_PROMPT.lower()
     assert "never promise" in SYSTEM_PROMPT.lower()

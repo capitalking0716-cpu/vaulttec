@@ -23,6 +23,10 @@ data/
 live_paper/state.json
 live_paper/trades.jsonl
 live_paper/live-paper-report.md
+live_paper_intraday/state.json
+live_paper_intraday/trades.jsonl
+live_paper_intraday/live-paper-intraday-report.md
+live_paper_intraday/STOP
 vaulttec/private_live/state.json
 vaulttec/private_live/proposals.json
 vaulttec/private_live/trades.jsonl
@@ -30,4 +34,5 @@ vaulttec/private_live/report.md
 vaulttec/private_live/STOP
 vaulttec/private_live/automation-enabled.json
 vaulttec/private_live/LIVE_CONFIRMATION.txt
+vaulttec/private_live/.etrade-tokens.json
 .pytest_cache/
