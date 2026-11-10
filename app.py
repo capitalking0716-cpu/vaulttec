@@ -18,7 +18,7 @@ from pathlib import Path
 import streamlit as st
 
 from vaulttec.ai_assistant import Assistant  # kept for reference; Ava replaces it in the app
-from vaulttec.ava import Ava, load_lessons, review_closed_trades
+from vaulttec.ava import Ava, list_clips, load_lessons, random_clip, review_closed_trades
 from vaulttec.analytics import (
     accuracy_summary, analyse_history, backtest_macd_crossover,
     backtest_sma_crossover, generate_signal, get_signal_history,
@@ -575,6 +575,33 @@ with tab_results:
         portfolio.cash, value, pnl,
     )
     st.write(st.session_state.ava.brief(_ava_ctx))
+    # --- Ava's own brain: online or offline, and a test ---------------------
+    _brain = st.session_state.ava.brain_status()
+    st.write(_brain["status"])
+    if st.button("🧠 Test Ava's brain", use_container_width=True, key="ava_brain_test"):
+        st.write(st.session_state.ava.ask(
+            "Say hello in one line, then tell me your number one risk rule.",
+            _ava_ctx))
+    # --- Ava's clips: she chills, then shows off ----------------------------
+    # Clips are .mp4 files in assets/clips/. Drop a new one in that folder
+    # and it appears here automatically — that is how more get added later.
+    _clips = list_clips()
+    if _clips:
+        st.subheader("🎬 Watch Ava")
+        _clip_labels = [c["label"] for c in _clips]
+        _picked = st.selectbox("Pick a clip — or let her surprise you",
+                               ["🎲 Surprise me"] + _clip_labels, key="ava_clip_pick")
+        if st.button("▶️ Play", use_container_width=True, key="ava_clip_play"):
+            if _picked == "🎲 Surprise me":
+                _clip = random_clip()
+            else:
+                _clip = next(c for c in _clips if c["label"] == _picked)
+            if _clip:
+                st.write(f"**{_clip['label']}**")
+                st.video(_clip["file"])
+    else:
+        st.caption("No Ava clips saved yet — save .mp4 files into "
+                   "assets/clips/ and they will appear here.")
     if st.button("📖 Review my closed trades — learn from them",
                  use_container_width=True, key="ava_review"):
         _new_lessons = review_closed_trades(engine)

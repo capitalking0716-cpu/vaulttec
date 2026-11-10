@@ -17,6 +17,7 @@ Her rules, in her own persona:
 from __future__ import annotations
 
 from . import llm
+from .clips import list_clips, random_clip
 from .lessons import load_lessons
 
 SYSTEM_PROMPT = """You are Ava, the trading AI inside VaultTec, a private trading
@@ -47,6 +48,25 @@ class Ava:
 
     def __init__(self):
         self.lessons = load_lessons()
+
+    def brain_status(self) -> dict:
+        """Ava's own brain: is a thinking model connected, and which one?
+        Her brain is her own API key + model — separate from Shadow.
+        Offline means she answers from app data + lessons only."""
+        import os
+
+        model = os.environ.get("AVA_MODEL", "gpt-4o-mini")
+        base = os.environ.get("AVA_BASE_URL", "https://api.openai.com/v1")
+        provider = "Google Gemini (free)" if "generativelanguage" in base else "OpenAI"
+        return {
+            "online": llm.llm_configured(),
+            "model": model,
+            "provider": provider,
+            "status": (f"🧠 Brain online — {provider}, {model}"
+                       if llm.llm_configured() else
+                       "🧠 Brain offline — add AVA_API_KEY in Secrets "
+                       "(free Gemini key works: aistudio.google.com)"),
+        }
 
     def refresh_lessons(self) -> None:
         self.lessons = load_lessons()
