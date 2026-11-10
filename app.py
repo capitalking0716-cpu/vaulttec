@@ -27,9 +27,9 @@ from vaulttec.analytics import (
 from vaulttec.analytics.signal_history import init_signal_history
 from vaulttec.automation import AutomationEngine
 from vaulttec.charts import (
-    allocation_chart, candlestick_chart, cumulative_pnl_chart,
+    GOLD, PURPLE, UP, allocation_chart, candlestick_chart, cumulative_pnl_chart,
     indicator_chart, pnl_by_symbol_chart, scanner_confidence_chart,
-    strategy_comparison_chart,
+    sparkline_chart, strategy_comparison_chart,
 )
 from vaulttec.config import RISK_PROFILES, get_settings
 from vaulttec.db import init_db
@@ -62,6 +62,33 @@ DISCLOSURE = (
 )
 
 st.set_page_config(page_title="VaultTec — Financial Intelligence", page_icon="🏦", layout="wide")
+
+# --- VaultTec dashboard theme: black / deep purple / metallic gold --------
+# Glowing purple-bordered cards, gold headings, no character imagery
+# anywhere — the look is the vault, not a person in it.
+st.markdown("""
+<style>
+.vt-title { text-align: center; font-size: 42px; font-weight: 800;
+  letter-spacing: 6px; margin: 0;
+  background: linear-gradient(90deg, #f5c542, #d4af37, #f5c542);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.vt-subtitle { text-align: center; color: #b9a8e8; letter-spacing: 4px;
+  font-size: 13px; margin: 0 0 4px 0; }
+.vt-tagline { text-align: center; color: #8b2ff7; letter-spacing: 3px;
+  font-size: 12px; margin-bottom: 18px; }
+.vt-card { border: 1px solid #5b21b6; border-radius: 10px;
+  background: #121214; padding: 14px 16px; margin-bottom: 10px;
+  box-shadow: 0 0 14px rgba(139, 47, 247, 0.25); }
+.vt-card-label { color: #b9a8e8; font-size: 13px; margin: 0; }
+.vt-card-value { color: #d4af37; font-size: 26px; font-weight: 700; margin: 2px 0; }
+.vt-card-delta { font-size: 13px; margin: 0; }
+.vt-up { color: #26a69a; } .vt-down { color: #ef5350; }
+.vt-tool { border: 1px solid #5b21b6; border-radius: 10px;
+  background: #121214; padding: 12px; text-align: center; margin-bottom: 10px;
+  box-shadow: 0 0 10px rgba(139, 47, 247, 0.20); }
+.vt-tool b { color: #e8e4d8; } .vt-tool span { color: #26a69a; font-size: 12px; }
+</style>
+""", unsafe_allow_html=True)
 
 LOGO_PATH = Path(__file__).parent / "assets" / "vaulttec-logo.png"
 
@@ -233,17 +260,133 @@ st.warning(DISCLOSURE)
 tab_dashboard, tab_scanner, tab_trade, tab_results, tab_live_paper, tab_private, tab_shadow = st.tabs(["Dashboard", "Scanner", "Trade", "Results", "Live Paper", "Private", "Shadow"])
 
 with tab_dashboard:
+    # --- VaultTec dashboard theme: gold header, glowing metric cards,
+    # big candlestick chart, assets / tools / Ava row. No character
+    # imagery — the look is the vault itself.
+    import datetime as _dt
+    _today = _dt.datetime.now().strftime("%I:%M %p EST · %b %d, %Y")
+    st.markdown(
+        f'<p class="vt-title">VAULTTEC</p>'
+        f'<p class="vt-subtitle">AI-POWERED TRADING PLATFORM</p>'
+        f'<p class="vt-tagline">🟢 LIVE MARKET &nbsp;·&nbsp; {_today} &nbsp;·&nbsp; '
+        f'BUILD WEALTH ◆ CONTROL YOUR FUTURE</p>',
+        unsafe_allow_html=True,
+    )
+
     # --- Portfolio metrics -----------------------------------------------------
     quotes = {s: provider.get_quote(s) for s in settings.watchlist}
     prices = {s: q.price for s, q in quotes.items()}
     value = portfolio.value(prices)
     pnl = value - settings.paper_starting_cash
+    closed_trades = [t for t in engine.trades if t.status == "closed"]
+    wins = sum(1 for t in closed_trades if (t.pnl or 0) > 0)
+    win_rate = (wins / len(closed_trades) * 100) if closed_trades else None
+    win_label = f"{win_rate:.1f}%" if win_rate is not None else "—"
+    win_delta = (f"{len(closed_trades)} closed trade(s), {wins} win(s)"
+                 if closed_trades else "No closed trades yet — win rate starts with your first close")
+    pnl_class = "vt-up" if pnl >= 0 else "vt-down"
+    pnl_arrow = "▲" if pnl >= 0 else "▼"
+
+    def _metric_card(label: str, value_text: str, delta: str, delta_class: str = "vt-up"):
+        st.markdown(
+            f'<div class="vt-card"><p class="vt-card-label">{label}</p>'
+            f'<p class="vt-card-value">{value_text}</p>'
+            f'<p class="vt-card-delta {delta_class}">{delta}</p></div>',
+            unsafe_allow_html=True,
+        )
 
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Portfolio value (paper)", f"${value:,.2f}")
-    c2.metric("Total P&L (paper)", f"${pnl:,.2f}")
-    c3.metric("Cash available (paper)", f"${portfolio.cash:,.2f}")
-    c4.metric("Risk exposure", f"${portfolio.exposure(prices):,.2f}")
+    with c1:
+        _metric_card("Total Portfolio", f"${value:,.2f}",
+                     f"{pnl_arrow} {pnl:+,.2f} vs start" if pnl else "Paper money only",
+                     pnl_class)
+        st.plotly_chart(sparkline_chart(
+            provider.get_history("SPY", days=60)["close"].tolist(), UP),
+            use_container_width=True)
+    with c2:
+        _metric_card("Total P&L (paper)", f"${pnl:,.2f}",
+                     f"{pnl_arrow} {pnl / settings.paper_starting_cash * 100:+.1f}% of starting cash",
+                     pnl_class)
+        st.plotly_chart(sparkline_chart(
+            provider.get_history("BTC-USD", days=60)["close"].tolist(), GOLD),
+            use_container_width=True)
+    with c3:
+        _metric_card("Win Rate", win_label, win_delta,
+                     "vt-up" if (win_rate or 0) >= 50 else "vt-down")
+        if closed_trades:
+            _cum, _run = [0.0], 0.0
+            for _t in closed_trades:
+                _run += _t.pnl or 0
+                _cum.append(_run)
+            st.plotly_chart(sparkline_chart(_cum, PURPLE), use_container_width=True)
+        else:
+            st.write("Paper trades only — no wins or losses yet.")
+    with c4:
+        _metric_card("Active AI Agents", "Ava + Scanner",
+                     "🟢 Online — Ava answers in Results", "vt-up")
+        _conf = [s.confidence * 100 for s in
+                 [generate_signal(sym, provider.get_history(sym))
+                  for sym in settings.watchlist]]
+        st.plotly_chart(sparkline_chart(_conf, PURPLE), use_container_width=True)
+
+    # --- Market Overview: the big candlestick chart --------------------------
+    _signals_preview = [
+        generate_signal(sym, provider.get_history(sym)) for sym in settings.watchlist
+    ]
+    _best = max(_signals_preview, key=lambda s: s.confidence)
+    _best_hist = provider.get_history(_best.symbol, days=120)
+    _best_q = quotes[_best.symbol]
+    _b_arrow = "▲" if _best_q.change_pct >= 0 else "▼"
+    st.subheader(f"📈 Market Overview — {_best.symbol} "
+                 f"${_best_q.price:,.2f} {_b_arrow} {_best_q.change_pct:+.2f}%")
+    st.caption(f"Strongest signal right now: {_best.symbol} — {_best.direction} "
+               f"({_best.confidence:.0%} confidence). A signal is not a trade.")
+    st.plotly_chart(candlestick_chart(_best_hist, _best.symbol),
+                    use_container_width=True)
+    st.plotly_chart(indicator_chart(_best_hist, _best.symbol),
+                    use_container_width=True)
+
+    # --- Bottom row: Your Assets / Trading Tools / Ava ------------------------
+    _b1, _b2, _b3 = st.columns(3)
+    with _b1:
+        st.subheader("💰 Your Assets")
+        _rows = []
+        for _sym, _h in portfolio.holdings.items():
+            _rows.append({"Asset": _sym, "Qty": _h.quantity,
+                          "Price": f"${prices.get(_sym, _h.avg_cost):,.2f}",
+                          "Value": f"${_h.quantity * prices.get(_sym, _h.avg_cost):,.2f}"})
+        for _sym in settings.watchlist:
+            if _sym not in portfolio.holdings:
+                _q = quotes[_sym]
+                _rows.append({"Asset": _sym, "Qty": "—",
+                              "Price": f"${_q.price:,.2f}",
+                              "Value": f"{_q.change_pct:+.2f}%"})
+        st.table(_rows)
+    with _b2:
+        st.subheader("🛠️ Trading Tools")
+        _tools = [
+            ("🤖 Auto Trade", "ON" if automation.enabled else "OFF — your choice"),
+            ("🔎 Market Scanner", "Scanner tab"),
+            ("🧪 Backtest", "Results tab"),
+            ("🛡️ Risk Control", "Trade tab — wide-6"),
+            ("💜 Ava", "Results tab — ask her"),
+            ("🔄 Portfolio Sync", "Live Paper tab"),
+        ]
+        for _i in range(0, len(_tools), 2):
+            _t1, _t2 = st.columns(2)
+            for _col, (_name, _status) in zip((_t1, _t2), _tools[_i:_i + 2]):
+                _col.markdown(
+                    f'<div class="vt-tool"><b>{_name}</b><br><span>{_status}</span></div>',
+                    unsafe_allow_html=True,
+                )
+    with _b3:
+        st.subheader("💜 Ava")
+        _ava_img = Path(__file__).resolve().parent / "assets" / "ava.png"
+        if _ava_img.exists():
+            st.image(str(_ava_img), width=180)
+        st.write("Ava — your trading AI. She hates losing money, learns "
+                 "from every closed trade, and never places one herself. "
+                 "Ask her in the Results tab.")
 
     # --- Dashboard charts: allocation + P&L by symbol ------------------------
     holdings_value = {

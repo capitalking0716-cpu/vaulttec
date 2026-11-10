@@ -54,3 +54,12 @@ def test_scanner_and_strategy_charts():
     ]
     fig = strategy_comparison_chart(strategies)
     assert list(fig.data[0].y) == [12.4, -3.1]
+
+
+def test_sparkline_is_small_and_axis_free():
+    from vaulttec.charts import sparkline_chart
+
+    fig = sparkline_chart([1.0, 2.0, 1.5, 3.0])
+    assert fig.layout.height == 48
+    assert fig.layout.xaxis.visible is False
+    assert fig.layout.yaxis.visible is False

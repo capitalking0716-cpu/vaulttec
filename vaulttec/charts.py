@@ -191,3 +191,19 @@ def strategy_comparison_chart(strategies: list[dict]) -> go.Figure:
     fig.update_layout(title="Backtest strategies — historical return only",
                       yaxis_title="Total return %")
     return _dark(fig, height=360)
+
+
+def sparkline_chart(values: list[float], color: str = UP) -> go.Figure:
+    """Tiny sparkline for a metric card — the little rising line under
+    the big number, like the reference dashboard. No axes, no legend."""
+    fig = go.Figure(go.Scatter(
+        y=values, mode="lines", line=dict(color=color, width=2),
+        fill="tozeroy", fillcolor="rgba(38,166,154,0.12)",
+        showlegend=False, hoverinfo="skip",
+    ))
+    fig.update_layout(
+        template="plotly_dark", paper_bgcolor=BG, plot_bgcolor=BG,
+        height=48, margin=dict(l=0, r=0, t=2, b=2),
+        xaxis=dict(visible=False), yaxis=dict(visible=False),
+    )
+    return fig
