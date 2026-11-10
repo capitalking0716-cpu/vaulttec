@@ -578,13 +578,23 @@ with tab_results:
         portfolio.cash, value, pnl,
     )
     st.write(st.session_state.ava.brief(_ava_ctx))
-    # --- Ava's own brain: online or offline, and a test ---------------------
-    _brain = st.session_state.ava.brain_status()
-    st.write(_brain["status"])
-    if st.button("🧠 Test Ava's brain", use_container_width=True, key="ava_brain_test"):
-        st.write(st.session_state.ava.ask(
-            "Say hello in one line, then tell me your number one risk rule.",
-            _ava_ctx))
+    # --- Talk to Ava: a real chat box, always on ------------------------------
+    # No brain buttons, no on/off — Ava is on full time. She thinks with
+    # her own key when one is set in Secrets; without it she answers
+    # from your app data and her lessons.
+    if "ava_chat" not in st.session_state:
+        st.session_state.ava_chat = []
+    _ava_avatar = str(_ava_path) if _ava_path.exists() else None
+    for _msg in st.session_state.ava_chat:
+        with st.chat_message(_msg["role"],
+                             avatar=_ava_avatar if _msg["role"] == "assistant" else None):
+            st.write(_msg["content"])
+    _ava_prompt = st.chat_input("Talk to Ava...", key="ava_chat_input")
+    if _ava_prompt:
+        st.session_state.ava_chat.append({"role": "user", "content": _ava_prompt})
+        _ava_reply = st.session_state.ava.ask(_ava_prompt, _ava_ctx)
+        st.session_state.ava_chat.append({"role": "assistant", "content": _ava_reply})
+        st.rerun()
     # --- Ava's clips: she chills, then shows off ----------------------------
     # Clips are .mp4 files in assets/clips/. Drop a new one in that folder
     # and it appears here automatically — that is how more get added later.
@@ -618,11 +628,6 @@ with tab_results:
         st.subheader("What Ava has learned")
         for _lesson in _ava_lessons:
             st.write(f"- {_lesson['lesson']}")
-    _ava_q = st.text_input("Ask Ava a question",
-                           placeholder="e.g. Should I close GOOGL? Is META worth a trade today?",
-                           key="ava_question")
-    if _ava_q:
-        st.write(st.session_state.ava.ask(_ava_q, _ava_ctx))
 
     # --- Signal history + accuracy (Phase 2) -------------------------------------
     st.header("📜 Signal History — are the signals worth anything?")
