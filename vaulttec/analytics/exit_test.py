@@ -261,6 +261,7 @@ def _summarise_variant(strategy: str, variant: ExitVariant,
         "blocked_reasons": dict(counts["blocked_reasons"]),
         "skipped_already_in_position": counts["skipped_already_in_position"],
         "skipped_too_small": counts["skipped_too_small"],
+        "too_small_by_symbol": dict(counts["too_small_by_symbol"]),
         "per_symbol_trades": dict(counts["per_symbol"]),
         "trades": trade_rows,
     }
@@ -270,7 +271,8 @@ def run_variant_validation(strategy: str, variant: ExitVariant,
                            histories: dict[str, pd.DataFrame],
                            window_start: str | None = None,
                            starting_cash: float = STARTING_CASH,
-                           risk_profile: str = "balanced") -> dict:
+                           risk_profile: str = "balanced",
+                           symbols: list[str] | None = None) -> dict:
     """Walk-forward validation for one mean-reversion strategy under
     one exit variant, over already-fetched histories.
 
@@ -282,6 +284,10 @@ def run_variant_validation(strategy: str, variant: ExitVariant,
     For the signal-exit variant the Risk Engine is passed no target
     (it allows that — it only checks risk/reward when a target
     exists); the stop is always set, for every variant.
+    ``symbols`` limits the run to the given symbols (default: the
+    full scan universe) — Phase 7 uses it for crypto-only and
+    wider-symbol runs; symbols missing from ``histories`` are
+    skipped, never invented.
     """
     limits = RISK_PROFILES[risk_profile]
     profile = UserProfile(risk_tolerance=risk_profile,
@@ -299,10 +305,11 @@ def run_variant_validation(strategy: str, variant: ExitVariant,
     counts: Counter = Counter()
     counts["blocked_reasons"] = Counter()
     counts["per_symbol"] = Counter()
+    counts["too_small_by_symbol"] = Counter()
     trade_rows: list[dict] = []
     equity = [starting_cash]
 
-    symbols = [s for s in SCAN_UNIVERSE if s in histories]
+    symbols = [s for s in (symbols or SCAN_UNIVERSE) if s in histories]
     for symbol in symbols:
         history = histories[symbol].reset_index(drop=True)
         start_idx = (trade_start_index(history, window_start)
@@ -332,6 +339,7 @@ def run_variant_validation(strategy: str, variant: ExitVariant,
             quantity = math.floor(raw_qty * 10000) / 10000
             if quantity <= 0:
                 counts["skipped_too_small"] += 1
+                counts["too_small_by_symbol"][symbol] += 1
                 continue
             engine.realised_pnl = 0.0  # each window is a different simulated day
             trade = engine.place_order(

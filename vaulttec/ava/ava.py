@@ -17,6 +17,7 @@ Her rules, in her own persona:
 from __future__ import annotations
 
 from . import llm
+from .briefing import load_briefing
 from .clips import list_clips, random_clip
 from .lessons import load_lessons
 
@@ -75,7 +76,7 @@ class Ava:
         """Short opening line for the app: what Ava sees right now."""
         portfolio = context.get("portfolio", {})
         open_trades = context.get("open_trades", [])
-        return (
+        line = (
             f"I'm Ava. Portfolio value ${portfolio.get('value', 0):,.2f} "
             f"(paper), P&L ${portfolio.get('pnl', 0):,.2f}, "
             f"{len(open_trades)} open trade(s). "
@@ -83,24 +84,32 @@ class Ava:
             "Ask me about a symbol, a position, or whether a trade is worth it — "
             "I'll argue against it first, and I never place trades myself."
         )
+        briefing = load_briefing()
+        if briefing:
+            return f"{briefing}\n\n{line}"
+        return line
 
     def ask(self, question: str, context: dict) -> str:
         """Answer a question with the app's real numbers and Ava's lessons."""
         self.refresh_lessons()
+        briefing = load_briefing()
         lessons_text = "\n".join(
             f"- {lesson['lesson']}" for lesson in self.lessons[:10]
         ) or "No lessons yet — no closed trades to learn from."
-        user_message = (
-            f"App context (paper trading): {context}\n\n"
-            f"Lessons from past trades:\n{lessons_text}\n\n"
-            f"Question: {question}"
-        )
+        parts = []
+        if briefing:
+            parts.append(f"Briefing — what I know tonight:\n{briefing}")
+        parts.append(f"App context (paper trading): {context}")
+        parts.append(f"Lessons from past trades:\n{lessons_text}")
+        parts.append(f"Question: {question}")
+        user_message = "\n\n".join(parts)
         reply = llm.chat(SYSTEM_PROMPT, user_message)
         if reply:
             return reply
-        return self._offline_answer(question, context)
+        return self._offline_answer(question, context, briefing=briefing)
 
-    def _offline_answer(self, question: str, context: dict) -> str:
+    def _offline_answer(self, question: str, context: dict,
+                        briefing: str = "") -> str:
         """Offline mode — no API key, so Ava answers from the app's own
         data and lessons, and says so plainly."""
         portfolio = context.get("portfolio", {})
@@ -114,6 +123,9 @@ class Ava:
             f"P&L ${portfolio.get('pnl', 0):,.2f}, cash "
             f"${portfolio.get('cash', 0):,.2f}.",
         ]
+        if briefing:
+            lines.append("What I know tonight (my briefing):")
+            lines.append(briefing)
         if open_trades:
             lines.append("Open trades:")
             for t in open_trades:

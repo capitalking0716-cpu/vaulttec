@@ -18,7 +18,7 @@ from pathlib import Path
 import streamlit as st
 
 from vaulttec.ai_assistant import Assistant  # kept for reference; Ava replaces it in the app
-from vaulttec.ava import Ava, list_clips, load_lessons, random_clip, review_closed_trades
+from vaulttec.ava import Ava, list_clips, load_evidence, load_lessons, random_clip, review_closed_trades
 from vaulttec.analytics import (
     accuracy_summary, analyse_history, backtest_macd_crossover,
     backtest_sma_crossover, generate_signal, get_signal_history,
@@ -640,6 +640,32 @@ with tab_results:
         st.subheader("What Ava has learned")
         for _lesson in _ava_lessons:
             st.write(f"- {_lesson['lesson']}")
+
+    # --- Ava's paper trades — her evidence log ---------------------------
+    # Paper only: every trade she practiced, with the reasoning and the
+    # outcome. The log lives in data/ava-evidence.jsonl (local only,
+    # never pushed). She never places a trade herself; the user
+    # decides YES or NO on every trade.
+    _ava_evidence = load_evidence(limit=5)
+    if _ava_evidence:
+        st.subheader("📓 Ava's paper trades — her evidence")
+        st.caption("Paper money only — Ava practices our wide-6 strategy here.")
+        for _rec in _ava_evidence:
+            if _rec.get("status") == "blocked":
+                st.write(f"- {_rec['symbol']} ({_rec.get('signal', '?')}): blocked — "
+                         f"{_rec.get('block_reason', '')}")
+                continue
+            _pnl = _rec.get("pnl_usd", 0) or 0
+            _outcome = (f"won ${_pnl:,.2f}" if _rec.get("won")
+                        else f"lost ${abs(_pnl):,.2f}")
+            _conf = _rec.get("confidence", 0) or 0
+            st.write(f"- {_rec['symbol']} ({_rec.get('signal', '?')}, "
+                     f"{_conf:.0%} confidence): in ${_rec.get('entry', 0):,.2f}, "
+                     f"stop ${_rec.get('stop', 0):,.2f}, target ${_rec.get('target', 0):,.2f}, "
+                     f"risk ${_rec.get('risk_usd', 0):,.2f} — {_outcome} "
+                     f"({_rec.get('exit_reason', '')}).")
+            if _rec.get("reasoning"):
+                st.caption(_rec["reasoning"])
 
     # --- Signal history + accuracy (Phase 2) -------------------------------------
     st.header("📜 Signal History — are the signals worth anything?")

@@ -186,6 +186,7 @@ def _summarise_filtered(strategy: str, variant_key: str, label: str,
         "blocked_reasons": dict(counts["blocked_reasons"]),
         "skipped_already_in_position": counts["skipped_already_in_position"],
         "skipped_too_small": counts["skipped_too_small"],
+        "too_small_by_symbol": dict(counts["too_small_by_symbol"]),
         "per_symbol_trades": dict(counts["per_symbol"]),
         "trades": trade_rows,
     }
@@ -221,6 +222,7 @@ def run_filtered_variant(strategy: str, variant_key: str, gate: str,
     counts: Counter = Counter()
     counts["blocked_reasons"] = Counter()
     counts["per_symbol"] = Counter()
+    counts["too_small_by_symbol"] = Counter()
     trade_rows: list[dict] = []
     equity = [starting_cash]
 
@@ -250,6 +252,7 @@ def run_filtered_variant(strategy: str, variant_key: str, gate: str,
             quantity = math.floor(raw_qty * 10000) / 10000
             if quantity <= 0:
                 counts["skipped_too_small"] += 1
+                counts["too_small_by_symbol"][symbol] += 1
                 continue
             engine.realised_pnl = 0.0
             trade = engine.place_order(
@@ -281,7 +284,8 @@ def run_filtered_variant(strategy: str, variant_key: str, gate: str,
 def run_combined_validation(histories: dict[str, pd.DataFrame],
                             window_start: str | None = None,
                             starting_cash: float = STARTING_CASH,
-                            risk_profile: str = "balanced") -> dict:
+                            risk_profile: str = "balanced",
+                            symbols: list[str] | None = None) -> dict:
     """One shared $10,000 portfolio: wide-6 mean-reversion (RSI +
     Bollinger, 5-day grid) PLUS MACD trend-following (every bar),
     both wide-6 exits. At most one trade per symbol per day
@@ -310,11 +314,12 @@ def run_combined_validation(histories: dict[str, pd.DataFrame],
     counts: Counter = Counter()
     counts["blocked_reasons"] = Counter()
     counts["per_symbol"] = Counter()
+    counts["too_small_by_symbol"] = Counter()
     counts["per_source"] = Counter()
     trade_rows: list[dict] = []
     equity = [starting_cash]
 
-    symbols = [s for s in SCAN_UNIVERSE if s in histories]
+    symbols = [s for s in (symbols or SCAN_UNIVERSE) if s in histories]
     for symbol in symbols:
         history = histories[symbol].reset_index(drop=True)
         start_idx = (trade_start_index(history, window_start)
@@ -350,6 +355,7 @@ def run_combined_validation(histories: dict[str, pd.DataFrame],
                 quantity = math.floor(raw_qty * 10000) / 10000
                 if quantity <= 0:
                     counts["skipped_too_small"] += 1
+                    counts["too_small_by_symbol"][symbol] += 1
                     continue
                 engine.realised_pnl = 0.0
                 trade = engine.place_order(
@@ -409,6 +415,7 @@ def run_combined_validation(histories: dict[str, pd.DataFrame],
         "blocked_reasons": dict(counts["blocked_reasons"]),
         "skipped_already_in_position": counts["skipped_already_in_position"],
         "skipped_too_small": counts["skipped_too_small"],
+        "too_small_by_symbol": dict(counts["too_small_by_symbol"]),
         "per_symbol_trades": dict(counts["per_symbol"]),
         "per_source_trades": dict(counts["per_source"]),
         "trades": trade_rows,

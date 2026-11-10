@@ -196,6 +196,7 @@ def _summarise_validation(strategy: str, trade_rows: list[dict],
         "blocked_reasons": dict(counts["blocked_reasons"]),
         "skipped_already_in_position": counts["skipped_already_in_position"],
         "skipped_too_small": counts["skipped_too_small"],
+        "too_small_by_symbol": dict(counts["too_small_by_symbol"]),
         "per_symbol_trades": dict(counts["per_symbol"]),
         "trades": trade_rows,
     }
@@ -230,6 +231,7 @@ def run_strategy_validation(strategy: str, histories: dict[str, pd.DataFrame],
     counts: Counter = Counter()
     counts["blocked_reasons"] = Counter()
     counts["per_symbol"] = Counter()
+    counts["too_small_by_symbol"] = Counter()
     trade_rows: list[dict] = []
     equity = [starting_cash]
 
@@ -254,6 +256,7 @@ def run_strategy_validation(strategy: str, histories: dict[str, pd.DataFrame],
             quantity = math.floor(raw_qty * 10000) / 10000
             if quantity <= 0:
                 counts["skipped_too_small"] += 1
+                counts["too_small_by_symbol"][symbol] += 1
                 continue
             engine.realised_pnl = 0.0  # each window is a different simulated day
             trade = engine.place_order(

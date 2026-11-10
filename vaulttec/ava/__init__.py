@@ -27,8 +27,10 @@ How Ava learns:
 from __future__ import annotations
 
 from .ava import Ava
+from .briefing import load_briefing
 from .clips import list_clips, random_clip
 from .lessons import learn_from_trade, load_lessons, review_closed_trades
+from .paper_trading import load_evidence
 
 __all__ = ["Ava", "learn_from_trade", "load_lessons", "review_closed_trades",
-           "list_clips", "random_clip"]
+           "list_clips", "random_clip", "load_briefing", "load_evidence"]
